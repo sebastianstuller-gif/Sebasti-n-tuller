@@ -136,4 +136,37 @@ with tab_sk:
                 ws.append(["", mesto, "", "", "16:30:00", "", "", "", "", ""])
                 current_row += 2
 
-            ws.append(["
+            ws.append([""] * 10) 
+            sum_row = current_row + 1
+            ws.cell(row=sum_row, column=1, value="Spolu")
+            ws.cell(row=sum_row, column=1).font = Font(bold=True)
+            
+            ws.cell(row=sum_row, column=6, value=f"=SUM(F6:F{current_row-1})").number_format = '#,##0.00'
+            ws.cell(row=sum_row, column=7, value=f"=SUM(G6:G{current_row-1})").number_format = '#,##0.00'
+            ws.cell(row=sum_row, column=10, value=f"=SUM(J6:J{current_row-1})").number_format = '#,##0.00'
+            
+            for col in [6, 7, 10]:
+                ws.cell(row=sum_row, column=col).font = Font(bold=True)
+
+            # 4. PRÍPRAVA NA STIAHNUTIE (BEZ UKLADANIA NA DISK)
+            excel_data = io.BytesIO()
+            wb.save(excel_data)
+            excel_data.seek(0)
+            
+            st.success("✅ Excel bol úspešne vygenerovaný!")
+            
+            # Špeciálne Streamlit tlačidlo na stiahnutie súboru
+            st.download_button(
+                label="📥 Stiahnuť Excel Cesťák",
+                data=excel_data,
+                file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_2026.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary"
+            )
+
+# ==========================================
+# ZÁLOŽKA 2: ZAHRANIČIE (Pripravené na ďalší vývoj)
+# ==========================================
+with tab_zahranicie:
+    st.header("Parametre pre Zahraničie")
+    st.info("Na tejto funkcii aktuálne pracujeme. Akonáhle dodá účtovníčka zoznam pravidiel pre diéty a prechody hraníc, bude to tu pridané.")
