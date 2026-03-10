@@ -134,4 +134,4 @@ elif page == "📊 Generátor cesťákov":
 elif page == "ℹ️ O nás":
     st.title("O projekte AutoCesták")
     st.write("Tento systém vyvinul **Sebastian Tuller** pre zjednodušenie agendy v rodinnej účtovnej firme.")
-    st.markdown("Cieľom je nahradiť hodiny ručného vypisovania tabuliek jedným kliknutím."
+    st.markdown("Cieľom je nahradiť hodiny ručného vypisovania tabuliek jedným kliknutím.")
