@@ -13,13 +13,13 @@ st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_s
 
 # --- JAZYKOVÝ SLOVNÍK (SK / EN) ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
-if "page" not in st.session_state: st.session_state["page"] = "Úvod"
+if "page" not in st.session_state: st.session_state["page"] = "Domov"
 if "authenticated" not in st.session_state: st.session_state["authenticated"] = False
 if "show_login" not in st.session_state: st.session_state["show_login"] = False
 
 translations = {
     "SK": {
-        "nav_home": "Úvod", "nav_cestaky": "Cesťáky", "nav_support": "Podpora", "nav_about": "O nás",
+        "nav_home": "Domov", "nav_cestaky": "Cesťáky", "nav_support": "Podpora", "nav_about": "O nás",
         "login_btn": "Prihlásenie", "logout_btn": "Odhlásiť",
         "hero_title": "Napreduj s automatizovaním cesťákov s nami",
         "hero_sub": "Sme tu, aby sme pomohli a zefektívnili vašu prácu.",
@@ -48,63 +48,65 @@ st.markdown("""
     
     html, body, [class*="css"], .stApp { font-family: 'Inter', sans-serif; background-color: #ffffff !important; color: #000000 !important; }
     
-    /* Úplné skrytie predvoleného bočného panela */
+    /* Skrytie bočného panela */
     [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebar"] { display: none !important; }
     
-    /* Navigačné tlačidlá (ako text) */
-    .nav-btn > button { background-color: transparent !important; color: #000000 !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; transition: 0.2s; }
+    /* Navigácia */
+    .nav-btn > button { background-color: transparent !important; color: #000000 !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; transition: 0.2s; padding: 0 10px !important; }
     .nav-btn > button:hover { color: #ff4b4b !important; }
     
-    /* Jazykové tlačidlá (SK EN) */
+    /* Jazyk */
     .lang-btn > button { background-color: transparent !important; color: #aaaaaa !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
     .lang-btn > button:hover { color: #000000 !important; }
     .lang-active > button { background-color: transparent !important; color: #000000 !important; font-weight: 800 !important; border: none !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
     
-    /* Tlačidlo Prihlásenie */
     .login-btn > button { background-color: #f0f0f0 !important; color: #000 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; }
     
-    /* Tmavé cenníkové boxy */
     .black-box { background-color: #111111; color: #ffffff; padding: 40px; border-radius: 12px; text-align: center; }
     .black-box h4 { color: #aaaaaa; font-weight: 400; margin-bottom: 10px; }
     .black-box h2 { color: #ffffff; font-size: 38px; margin: 10px 0 30px 0; font-weight: 800; }
     
-    /* Biele tlačidlo Kúpiť v čiernom boxe */
     .buy-btn > button { background-color: #ffffff !important; color: #000000 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; }
     .buy-btn > button:hover { background-color: #dddddd !important; }
     
-    /* Kontaktný box (z fotky) */
     .contact-box { background-color: #f8f9fa; border: 1px solid #eeeeee; padding: 30px; border-radius: 16px; margin-top: 40px; display: inline-block; min-width: 350px; }
     .contact-box .small-text { color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
     .contact-box h3 { font-size: 24px; font-weight: 800; margin: 0 0 5px 0; }
     .contact-box .email { color: #555555; font-size: 15px; margin: 0; }
     
-    /* Typografia Úvodnej strany */
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* BIELY TEXT V ČIERNYCH BUNKÁCH GENERÁTORA */
+    /* VYNÚTENIE BIELEJ FARBY V ČIERNYCH BUNKÁCH GENERÁTORA */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div, 
-    div[data-baseweb="textarea"] > div,
-    input, textarea, select { 
+    div[data-baseweb="textarea"] > div { 
         background-color: #111111 !important; 
-        color: #ffffff !important; 
-        -webkit-text-fill-color: #ffffff !important; 
         border: 1px solid #333333 !important; 
         border-radius: 6px; 
+    }
+    input[type="text"], input[type="password"], input[type="number"], textarea, div[data-baseweb="select"] * {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        caret-color: #ffffff !important;
     }
     label { color: #000000 !important; font-weight: 600 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- TOP NAVIGATION BAR ---
-col_logo, col_nav1, col_nav2, col_nav3, col_space, col_sk, col_en, col_login = st.columns([2.5, 1, 1, 1, 2.5, 0.4, 0.4, 1.5])
+col_logo, col_nav0, col_nav1, col_nav2, col_nav3, col_space, col_sk, col_en, col_login = st.columns([2.5, 0.8, 0.8, 0.8, 0.8, 1.5, 0.4, 0.4, 1.5])
 
 with col_logo:
     if os.path.exists("logo.png.png"): st.image("logo.png.png", width=160)
     elif os.path.exists("logo.png"): st.image("logo.png", width=160)
     else: st.markdown("<h3 style='margin:0; padding:0;'>AUTOCESTAK pro</h3>", unsafe_allow_html=True)
+
+with col_nav0:
+    st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
+    if st.button(t["nav_home"]): st.session_state["page"] = "Domov"; st.session_state["show_login"] = False
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_nav1:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
@@ -142,7 +144,7 @@ with col_login:
     else:
         if st.button(t["logout_btn"]): 
             st.session_state["authenticated"] = False
-            st.session_state["page"] = "Úvod"
+            st.session_state["page"] = "Domov"
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -169,13 +171,13 @@ if st.session_state["show_login"] and not st.session_state["authenticated"]:
 
 # --- OBSAH STRÁNOK ---
 
-if st.session_state["page"] == "Úvod":
+if st.session_state["page"] == "Domov":
+    # HERO SECTION
     c1, c2 = st.columns([1.5, 1])
     with c1:
         st.markdown(f"<div class='hero-title'>{t['hero_title']}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='hero-subtitle'>{t['hero_sub']}</div>", unsafe_allow_html=True)
         
-        # Kontaktný box
         st.markdown(f"""
             <div class='contact-box'>
                 <div class='small-text'>{t['contact_small']}</div>
@@ -183,10 +185,47 @@ if st.session_state["page"] == "Úvod":
                 <p class='email'>✉️ sebastian.stuller@jmcredit.sk</p>
             </div>
         """, unsafe_allow_html=True)
+    
+    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ABOUT FOUNDER SECTION
+    f1, f2 = st.columns([1, 2])
+    with f1:
+        if os.path.exists("profilovka.png"):
+            st.image("profilovka.png", use_container_width=True)
+        elif os.path.exists("profilovka.jpg"):
+            st.image("profilovka.jpg", use_container_width=True)
+        else:
+            st.info("Nahrajte svoju fotku na GitHub s názvom 'profilovka.jpg'")
+            
+    with f2:
+        st.markdown("<h2 style='margin-bottom: 20px;'>Automatizácia pre moderné účtovníctvo</h2>", unsafe_allow_html=True)
+        st.write("""
+        Našou víziou je posunúť účtovníctvo do 21. storočia. Chápeme, že pre účtovné kancelárie a podnikateľov je čas tou najcennejšou komoditou. 
+        Preto sme vytvorili **AUTOCESTAK pro** – nástroj, ktorý plne automatizuje únavnú administratívu okolo cestovných náhrad, 
+        eliminuje chybovosť pri výpočtoch a šetrí desiatky hodín vašej práce mesačne. 
+        
+        Sústreďte sa na to, čo je pre váš biznis skutočne dôležité. Rutinné papierovačky a výpočty nechajte na náš inteligentný algoritmus.
+        """)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style='background-color: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #111;'>
+            <h4 style='margin-top: 0;'>Kontakt & Fakturačné údaje</h4>
+            <b>Meno:</b> Sebastián Štuller<br>
+            <b>Spoločnosť:</b> jmcreditplus s.r.o.<br>
+            <b>Adresa:</b> Obchodný dom Leo, Ul. Ľ. Štúra 7101/1A, 934 01 Levice<br>
+            <b>IČO:</b> 36 848 549<br>
+            <b>IČ DPH:</b> SK 2022477479<br>
+            <b>Mobil:</b> +421 911 781 362<br>
+            <b>E-mail:</b> sebastian.stuller@jmcredit.sk
+        </div>
+        """, unsafe_allow_html=True)
 
 elif st.session_state["page"] == "Cesťáky":
     if not st.session_state["authenticated"]:
-        # CENNÍK (Čierne boxy)
         st.markdown("<br><br>", unsafe_allow_html=True)
         p1, p2, p3, p4 = st.columns([1, 2, 2, 1])
         with p2:
@@ -212,9 +251,7 @@ elif st.session_state["page"] == "Cesťáky":
             st.markdown('</div>', unsafe_allow_html=True)
     
     else:
-        # GENERÁTOR (Viditeľný len po prihlásení)
         st.title(t["gen_title"])
-        
         col_x, col_y = st.columns(2)
         with col_x:
             meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
@@ -225,13 +262,20 @@ elif st.session_state["page"] == "Cesťáky":
             
         with col_y:
             cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
+            
             spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+            st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
+            
             cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: ŠÚ SR (Mesačné ceny PHM)</a></div>", unsafe_allow_html=True)
+            
             amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
+            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
+            
             stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
+            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top:20px;"></div>', unsafe_allow_html=True)
-        # Čierne hlavné tlačidlo pre generovanie
         st.markdown("""<style>.gen-btn > button { background-color: #000 !important; color: #fff !important; width: 100%; height: 3em; border-radius: 4px !important; font-weight: bold; border: none !important; }</style>""", unsafe_allow_html=True)
         st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
         if st.button("🚀 Vygenerovať Excel"):
@@ -309,6 +353,4 @@ elif st.session_state["page"] == "O nás":
     st.title("O projekte AUTOCESTAK pro")
     st.markdown("""
         Tento systém vyvinul **Sebastián Štuller** pre zefektívnenie procesov v spoločnosti **jmcreditplus s.r.o.**
-        
-        Naším cieľom je digitalizácia tradičného účtovníctva a odstránenie chybovosti pri ručnom spracovávaní dát.
     """)
