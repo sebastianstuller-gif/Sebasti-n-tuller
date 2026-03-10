@@ -29,7 +29,7 @@ translations = {
         "gen_title": "Generátor cesťákov"
     },
     "EN": {
-        "nav_home": "Home", "nav_cestaky": "App", "nav_support": "Support", "nav_about": "About",
+        "nav_home": "Home", "nav_cestaky": "App", "nav_support": "Support", "nav_about": "About Us",
         "login_btn": "Login", "logout_btn": "Logout",
         "hero_title": "Advance your travel expense automation with us",
         "hero_sub": "We are here to help and streamline your workflow.",
@@ -41,7 +41,7 @@ translations = {
 }
 t = translations[st.session_state["lang"]]
 
-# --- POKROČILÝ CSS STYLING (Skrytie sidebaru, top navbar, boxy) ---
+# --- POKROČILÝ CSS STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
@@ -56,6 +56,11 @@ st.markdown("""
     .nav-btn > button { background-color: transparent !important; color: #000000 !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; transition: 0.2s; }
     .nav-btn > button:hover { color: #ff4b4b !important; }
     
+    /* Jazykové tlačidlá (SK EN) */
+    .lang-btn > button { background-color: transparent !important; color: #aaaaaa !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
+    .lang-btn > button:hover { color: #000000 !important; }
+    .lang-active > button { background-color: transparent !important; color: #000000 !important; font-weight: 800 !important; border: none !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
+    
     /* Tlačidlo Prihlásenie */
     .login-btn > button { background-color: #f0f0f0 !important; color: #000 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; }
     
@@ -64,7 +69,7 @@ st.markdown("""
     .black-box h4 { color: #aaaaaa; font-weight: 400; margin-bottom: 10px; }
     .black-box h2 { color: #ffffff; font-size: 38px; margin: 10px 0 30px 0; font-weight: 800; }
     
-    /* Biele tlačidlo Kúpiť */
+    /* Biele tlačidlo Kúpiť v čiernom boxe */
     .buy-btn > button { background-color: #ffffff !important; color: #000000 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; }
     .buy-btn > button:hover { background-color: #dddddd !important; }
     
@@ -78,27 +83,37 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* Inputy v generátore */
-    input, textarea, select, div[data-baseweb="select"] > div { background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #ddd !important; border-radius: 6px; }
+    /* BIELY TEXT V ČIERNYCH BUNKÁCH GENERÁTORA */
+    div[data-baseweb="input"] > div, 
+    div[data-baseweb="select"] > div, 
+    div[data-baseweb="textarea"] > div,
+    input, textarea, select { 
+        background-color: #111111 !important; 
+        color: #ffffff !important; 
+        -webkit-text-fill-color: #ffffff !important; 
+        border: 1px solid #333333 !important; 
+        border-radius: 6px; 
+    }
+    label { color: #000000 !important; font-weight: 600 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- TOP NAVIGATION BAR ---
-col_logo, col_nav1, col_nav2, col_nav3, col_space, col_lang, col_login = st.columns([2, 1, 1, 1, 3, 1, 1.5])
+col_logo, col_nav1, col_nav2, col_nav3, col_space, col_sk, col_en, col_login = st.columns([2.5, 1, 1, 1, 2.5, 0.4, 0.4, 1.5])
 
 with col_logo:
-    if os.path.exists("logo.png.png"): st.image("logo.png.png", width=150)
-    elif os.path.exists("logo.png"): st.image("logo.png", width=150)
+    if os.path.exists("logo.png.png"): st.image("logo.png.png", width=160)
+    elif os.path.exists("logo.png"): st.image("logo.png", width=160)
     else: st.markdown("<h3 style='margin:0; padding:0;'>AUTOCESTAK pro</h3>", unsafe_allow_html=True)
 
 with col_nav1:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
-    if st.button(t["nav_home"]): st.session_state["page"] = "Úvod"; st.session_state["show_login"] = False
+    if st.button(t["nav_cestaky"]): st.session_state["page"] = "Cesťáky"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_nav2:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
-    if st.button(t["nav_cestaky"]): st.session_state["page"] = "Cesťáky"; st.session_state["show_login"] = False
+    if st.button(t["nav_support"]): st.session_state["page"] = "Podpora"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_nav3:
@@ -106,11 +121,17 @@ with col_nav3:
     if st.button(t["nav_about"]): st.session_state["page"] = "O nás"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_lang:
-    selected_lang = st.selectbox("🌐", ["SK", "EN"], index=0 if st.session_state["lang"] == "SK" else 1, label_visibility="collapsed")
-    if selected_lang != st.session_state["lang"]:
-        st.session_state["lang"] = selected_lang
-        st.rerun()
+with col_sk:
+    cls = "lang-active" if st.session_state["lang"] == "SK" else "lang-btn"
+    st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+    if st.button("SK", key="lang_sk"): st.session_state["lang"] = "SK"; st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col_en:
+    cls = "lang-active" if st.session_state["lang"] == "EN" else "lang-btn"
+    st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+    if st.button("EN", key="lang_en"): st.session_state["lang"] = "EN"; st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_login:
     st.markdown('<div class="login-btn">', unsafe_allow_html=True)
@@ -127,13 +148,14 @@ with col_login:
 
 st.markdown("---")
 
-# --- LOGIN FORM (Zobrazí sa len ak sa klikne na Prihlásenie) ---
+# --- LOGIN FORM ---
 if st.session_state["show_login"] and not st.session_state["authenticated"]:
     st.markdown(f"<h3 style='text-align: center;'>{t['login_title']}</h3>", unsafe_allow_html=True)
     l1, l2, l3 = st.columns([1, 1, 1])
     with l2:
         pwd = st.text_input(t["login_pass"], type="password")
-        st.markdown('<div class="buy-btn">', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-btn" style="text-align: center;">', unsafe_allow_html=True)
         if st.button(t["login_submit"]):
             if pwd == "levice2026":
                 st.session_state["authenticated"] = True
@@ -153,7 +175,7 @@ if st.session_state["page"] == "Úvod":
         st.markdown(f"<div class='hero-title'>{t['hero_title']}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='hero-subtitle'>{t['hero_sub']}</div>", unsafe_allow_html=True)
         
-        # Kontaktný box podľa fotky
+        # Kontaktný box
         st.markdown(f"""
             <div class='contact-box'>
                 <div class='small-text'>{t['contact_small']}</div>
@@ -209,7 +231,9 @@ elif st.session_state["page"] == "Cesťáky":
             stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
 
         st.markdown('<div style="margin-top:20px;"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-btn">', unsafe_allow_html=True) # Pre tmavé tlačidlo generovania
+        # Čierne hlavné tlačidlo pre generovanie
+        st.markdown("""<style>.gen-btn > button { background-color: #000 !important; color: #fff !important; width: 100%; height: 3em; border-radius: 4px !important; font-weight: bold; border: none !important; }</style>""", unsafe_allow_html=True)
+        st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
         if st.button("🚀 Vygenerovať Excel"):
             with st.spinner('Pripravujem dáta a generujem Excel...'):
                 start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
@@ -276,6 +300,10 @@ elif st.session_state["page"] == "Cesťáky":
                 st.success("✅ Hotovo!")
                 st.download_button(label="📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_2026.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         st.markdown('</div>', unsafe_allow_html=True)
+
+elif st.session_state["page"] == "Podpora":
+    st.title("Podpora")
+    st.write("V prípade problémov s generovaním alebo nastavením sadzieb nás neváhajte kontaktovať na čísle **+421 911 781 362**.")
 
 elif st.session_state["page"] == "O nás":
     st.title("O projekte AUTOCESTAK pro")
