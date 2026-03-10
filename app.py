@@ -78,19 +78,29 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* VYNÚTENIE BIELEJ FARBY V ČIERNYCH BUNKÁCH GENERÁTORA */
-    div[data-baseweb="input"] > div, 
-    div[data-baseweb="select"] > div, 
-    div[data-baseweb="textarea"] > div { 
+    /* --- AGRESÍVNY FIX PRE BIELE PÍSMO V ČIERNYCH BUNKÁCH --- */
+    .stTextInput input, 
+    .stNumberInput input, 
+    .stTextArea textarea, 
+    .stSelectbox div[data-baseweb="select"] { 
         background-color: #111111 !important; 
+        color: #ffffff !important; 
+        -webkit-text-fill-color: #ffffff !important;
         border: 1px solid #333333 !important; 
-        border-radius: 6px; 
+        border-radius: 6px !important; 
     }
-    input[type="text"], input[type="password"], input[type="number"], textarea, div[data-baseweb="select"] * {
+    
+    /* Prebitie Streamlit default vnútorných elementov */
+    [data-baseweb="input"] input, 
+    [data-baseweb="textarea"] textarea, 
+    [data-baseweb="base-input"],
+    [data-baseweb="select"] span {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
         caret-color: #ffffff !important;
+        background-color: transparent !important;
     }
+    
     label { color: #000000 !important; font-weight: 600 !important; }
     </style>
     """, unsafe_allow_html=True)
