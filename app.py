@@ -71,7 +71,6 @@ def check_password():
 
 # --- SIDEBAR (Branding) ---
 with st.sidebar:
-    # Kontrola loga pre oba názvy
     if os.path.exists("logo.png.png"):
         st.image("logo.png.png", use_container_width=True)
     elif os.path.exists("logo.png"):
@@ -86,7 +85,7 @@ with st.sidebar:
         <div style='font-size: 12px; color: gray; line-height: 1.6;'>
             Founder: <b>Sebastián Štuller</b><br>
             Spracovateľ: <b>jmcreditplus s.r.o.</b><br>
-            Verzia: 1.0.2 Pro
+            Verzia: 1.0.3 Pro
         </div>
     """, unsafe_allow_html=True)
     
@@ -134,6 +133,8 @@ if page == "Domov":
 elif page == "Generátor":
     if check_password():
         st.title("Generátor dokumentov")
+        
+        # TOTO JE TEN RIADOK, KTORÝ CHÝBAL (t1, t2 = st.tabs)
         t1, t2 = st.tabs(["Slovensko", "Zahraničie"])
         
         with t1:
@@ -143,68 +144,133 @@ elif page == "Generátor":
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
                 mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
                 start_miesto = st.text_input("Miesto štartu", value="Mýtne Ludany")
+                mesta_sk = st.text_area("Destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+                
             with col_y:
                 cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
+                
                 spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
+                
                 cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Štatistický úrad SR</a></div>", unsafe_allow_html=True)
+                
                 amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
+                
                 stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
-            
-            mesta_sk = st.text_area("Destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
 
             if st.button("Vygenerovať Excel dokument"):
-                # --- VÝPOČTOVÁ LOGIKA ---
-                sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
-                mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
-                mes_int = mesiace_dict[mesiac_nazov]
-                rok = 2026
-                
-                sk_holidays = holidays.Slovakia(years=rok)
-                dni = [datetime.date(rok, mes_int, d) for d in range(1, calendar.monthrange(rok, mes_int)[1] + 1) 
-                       if datetime.date(rok, mes_int, d).weekday() < 5 and datetime.date(rok, mes_int, d) not in sk_holidays]
-                
-                random.shuffle(dni)
-                
-                cena_jednej_cesty = (270 * sadzba_km) + stravne_val
-                pocet_ciest = max(1, min(len(dni), int(round(cielova_suma / cena_jednej_cesty))))
-                celkove_km = int(round((cielova_suma - (pocet_ciest * stravne_val)) / sadzba_km))
-                
-                km_list = [celkove_km // pocet_ciest] * pocet_ciest
-                for i in range(celkove_km % pocet_ciest): km_list[i] += 1
-                
-                vybrane_dni = sorted(dni[:pocet_ciest])
-                mesta_list = [m.strip() for m in mesta_sk.split(',')]
+                with st.spinner('Pripravujem dáta a generujem Excel...'):
+                    # --- VÝPOČTOVÁ LOGIKA ---
+                    sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
+                    mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
+                    mes_int = mesiace_dict[mesiac_nazov]
+                    rok = 2026
+                    
+                    sk_holidays = holidays.Slovakia(years=rok)
+                    dni = [datetime.date(rok, mes_int, d) for d in range(1, calendar.monthrange(rok, mes_int)[1] + 1) 
+                           if datetime.date(rok, mes_int, d).weekday() < 5 and datetime.date(rok, mes_int, d) not in sk_holidays]
+                    
+                    random.shuffle(dni)
+                    
+                    cena_jednej_cesty = (270 * sadzba_km) + stravne_val
+                    pocet_ciest = max(1, min(len(dni), int(round(cielova_suma / cena_jednej_cesty))))
+                    celkove_km = int(round((cielova_suma - (pocet_ciest * stravne_val)) / sadzba_km))
+                    
+                    km_list = [celkove_km // pocet_ciest] * pocet_ciest
+                    for i in range(celkove_km % pocet_ciest): km_list[i] += 1
+                    
+                    # Jemné rozhádzanie KM pre rôznorodosť
+                    for _ in range(pocet_ciest * 2):
+                        i, j = random.randint(0, pocet_ciest - 1), random.randint(0, pocet_ciest - 1)
+                        if i != j:
+                            shift = random.randint(1, 20)
+                            if km_list[i] - shift > 50:
+                                km_list[i] -= shift
+                                km_list[j] += shift
 
-                # Excel
-                wb = Workbook()
-                ws = wb.active
-                ws.title = f"{mesiac_nazov}_{rok}"
-                ws.column_dimensions['A'].width = 15
-                ws.column_dimensions['B'].width = 30
-                ws.column_dimensions['D'].width = 15
-                ws.column_dimensions['J'].width = 15
+                    vybrane_dni = sorted(dni[:pocet_ciest])
+                    mesta_list = [m.strip() for m in mesta_sk.split(',')]
 
-                ws['A1'] = f"VYÚČTOVANIE PRACOVNEJ CESTY - {meno}"
-                ws['A1'].font = Font(bold=True)
-                ws.append(["Dátum", "ODCHOD-PRÍCHOD", "Vozidlo", "KM", "Čas", "Cestovné", "Stravné", "Nocľah", "Iné", "Spolu"])
-                
-                current_row = 3
-                for idx, d in enumerate(vybrane_dni):
-                    km = km_list[idx]
-                    cest = km * sadzba_km
-                    ws.append([d.strftime("%d.%m.%Y"), start_miesto, f"AUV ({spz})", km, "08:00", cest, stravne_val, "", "", cest + stravne_val])
-                    ws.append(["", random.choice(mesta_list), "", "", "16:30", "", "", "", "", ""])
-                    current_row += 2
+                    # --- EXCEL GENERÁCIA ---
+                    wb = Workbook()
+                    ws = wb.active
+                    ws.title = f"{mesiac_nazov}_{rok}"
 
-                output = io.BytesIO()
-                wb.save(output)
-                output.seek(0)
-                
-                st.success("Dokument úspešne pripravený.")
-                st.download_button("Stiahnuť súbor (.xlsx)", data=output, file_name=f"Cestak_{mesiac_nazov}.xlsx")
+                    ws.column_dimensions['A'].width = 12  
+                    ws.column_dimensions['B'].width = 30  
+                    ws.column_dimensions['C'].width = 25  
+                    ws.column_dimensions['D'].width = 15  
+                    ws.column_dimensions['E'].width = 22  
+                    ws.column_dimensions['F'].width = 15  
+                    ws.column_dimensions['G'].width = 12  
+                    ws.column_dimensions['H'].width = 12  
+                    ws.column_dimensions['I'].width = 22  
+                    ws.column_dimensions['J'].width = 15  
+
+                    ws['A1'] = f"VYÚČTOVANIE PRACOVNEJ CESTY - {meno}"
+                    ws['A1'].font = Font(bold=True)
+                    
+                    hlavicka = ["Dátum", "ODCHOD-PRÍCHOD", "Použitý dopravný prostriedok", "Vzdialenosť v km", 
+                                "Začiatok a koniec výkonu", "Cestovné", "Stravné", "Nocľažné", "Nutné vedľajšie výdavky", "Spolu"]
+                    ws.append(hlavicka)
+                    
+                    for cell in ws[2]:
+                        cell.font = Font(bold=True)
+                        cell.alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
+
+                    ws.append([""] * 10)
+                    ws.append([""] * 10)
+                    ws.append(["", "", "", "", "", "EUR", "EUR", "EUR", "EUR", "EUR"])
+                    for cell in ws[5]: cell.alignment = Alignment(horizontal="right")
+
+                    current_row = 6
+                    dostupne_mesta = mesta_list.copy()
+                    random.shuffle(dostupne_mesta)
+                    
+                    for idx, d in enumerate(vybrane_dni):
+                        km = km_list[idx]
+                        mesto = dostupne_mesta[idx % len(dostupne_mesta)]
+                        cestovne = km * sadzba_km
+                        spolu = cestovne + stravne_val
+                        dopravny_prostriedok = f"AUV ({spz})"
+                        
+                        ws.append([d.strftime("%Y-%m-%d"), start_miesto, dopravny_prostriedok, km, "8.00", cestovne, stravne_val, "", "", spolu])
+                        ws.cell(row=current_row, column=6).number_format = '0.0000' 
+                        ws.cell(row=current_row, column=7).number_format = '0.00'   
+                        ws.cell(row=current_row, column=10).number_format = '0.0000' 
+                        
+                        ws.append(["", mesto, "", "", "16:30:00", "", "", "", "", ""])
+                        current_row += 2
+
+                    ws.append([""] * 10) 
+                    sum_row = current_row + 1
+                    ws.cell(row=sum_row, column=1, value="Spolu")
+                    ws.cell(row=sum_row, column=1).font = Font(bold=True)
+                    
+                    ws.cell(row=sum_row, column=6, value=f"=SUM(F6:F{current_row-1})").number_format = '#,##0.00'
+                    ws.cell(row=sum_row, column=7, value=f"=SUM(G6:G{current_row-1})").number_format = '#,##0.00'
+                    ws.cell(row=sum_row, column=10, value=f"=SUM(J6:J{current_row-1})").number_format = '#,##0.00'
+                    
+                    for col in [6, 7, 10]:
+                        ws.cell(row=sum_row, column=col).font = Font(bold=True)
+
+                    output = io.BytesIO()
+                    wb.save(output)
+                    output.seek(0)
+                    
+                    st.success("✅ Dokument bol úspešne vygenerovaný!")
+                    st.download_button(
+                        label="Stiahnuť Excel dokument",
+                        data=output,
+                        file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_2026.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
 
         with t2:
-            st.info("Zahraničné cesťáky: Funkcia bude sprístupnená v najbližšej aktualizácii.")
+            st.info("Zahraničné cesťáky: Funkcia bude sprístupnená po implementácii aktuálnych sadzieb ECB.")
 
 elif page == "O systéme":
     st.title("O projekte")
@@ -217,30 +283,3 @@ elif page == "O systéme":
         <br><br>
         © 2026 jmcreditplus s.r.o.
     """, unsafe_allow_html=True)
-with t1:
-            col_x, col_y = st.columns(2)
-            with col_x:
-                meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
-                spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
-                mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
-                start_miesto = st.text_input("Miesto štartu", value="Mýtne Ludany")
-                mesta_sk = st.text_area("Destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
-                
-            with col_y:
-                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
-                
-                # Spotreba
-                spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
-                st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
-                
-                # Cena PHM s linkom
-                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Štatistický úrad SR</a></div>", unsafe_allow_html=True)
-                
-                # Amortizácia s linkom
-                amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
-                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
-                
-                # Stravné s linkom
-                stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
-                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
