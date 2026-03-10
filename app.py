@@ -42,6 +42,7 @@ translations = {
 t = translations[st.session_state["lang"]]
 
 # --- POKROČILÝ CSS STYLING ---
+# --- POKROČILÝ CSS STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
@@ -78,30 +79,40 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* --- AGRESÍVNY FIX PRE BIELE PÍSMO V ČIERNYCH BUNKÁCH --- */
-    .stTextInput input, 
-    .stNumberInput input, 
-    .stTextArea textarea, 
-    .stSelectbox div[data-baseweb="select"] { 
+    /* --- ULTIMÁTNY FIX PRE BIELE PÍSMO V ČIERNYCH BUNKÁCH --- */
+    
+    /* 1. Obaly buniek na čierno */
+    div[data-baseweb="input"] > div, 
+    div[data-baseweb="select"] > div, 
+    div[data-baseweb="textarea"] > div,
+    .stTextInput div[data-baseweb="input"],
+    .stNumberInput div[data-baseweb="input"] { 
         background-color: #111111 !important; 
-        color: #ffffff !important; 
-        -webkit-text-fill-color: #ffffff !important;
         border: 1px solid #333333 !important; 
         border-radius: 6px !important; 
     }
     
-    /* Prebitie Streamlit default vnútorných elementov */
-    [data-baseweb="input"] input, 
-    [data-baseweb="textarea"] textarea, 
-    [data-baseweb="base-input"],
-    [data-baseweb="select"] span {
+    /* 2. Samotný text vnútri (natvrdo na bielo) */
+    div[data-baseweb="input"] input, 
+    div[data-baseweb="textarea"] textarea,
+    input[class*="st-"], 
+    textarea[class*="st-"] {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
         caret-color: #ffffff !important;
         background-color: transparent !important;
     }
     
-    label { color: #000000 !important; font-weight: 600 !important; }
+    /* 3. Fix pre Selectbox (roletku) */
+    div[data-baseweb="select"] span {
+        color: #ffffff !important;
+    }
+    
+    /* Názvy nad bunkami ostanú čierne */
+    label, label p { color: #000000 !important; font-weight: 600 !important; }
+    
+    /* Tlačidlo Generovať */
+    .gen-btn > button { background-color: #000 !important; color: #fff !important; width: 100%; height: 3.5em; border-radius: 4px !important; font-weight: bold !important; border: none !important; }
     </style>
     """, unsafe_allow_html=True)
 
