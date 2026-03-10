@@ -7,166 +7,90 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
-# --- NASTAVENIE STRÁNKY ---
-st.set_page_config(page_title="AutoCesták PRO", page_icon="🚗", layout="centered")
+# --- 1. ZÁKLADNÉ NASTAVENIE A STYLING ---
+st.set_page_config(page_title="AutoCesták PRO", page_icon="🚀", layout="wide")
 
-st.title("🚗 AutoCesták PRO 2026")
-st.markdown("Automatický generátor cestovných príkazov do Excelu (Presne podľa šablóny).")
+# Vlastné CSS pre krajší vzhľad
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #ff4b4b; color: white; }
+    .sidebar-text { font-size: 14px; color: #555; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- ZÁLOŽKY ---
-tab_sk, tab_zahranicie = st.tabs(["🇸🇰 Slovenské cesťáky", "🌍 Zahraničné cesťáky"])
+# --- 2. LOGIN LOGIKA ---
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
 
-# ==========================================
-# ZÁLOŽKA 1: SLOVENSKO
-# ==========================================
-with tab_sk:
-    st.header("Parametre pre Slovensko")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        meno = st.text_input("Meno a Priezvisko:", value="Jozef Mrkvička")
-        spz = st.text_input("ŠPZ Vozidla:", value="LV-123XY")
-        mesiac_nazov = st.selectbox("Mesiac:", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
-        start_miesto = st.text_input("Miesto štartu:", value="Mýtne Ludany")
-        
-    with col2:
-        cielova_suma = st.number_input("Cieľová suma mesačne (€):", min_value=100.0, max_value=5000.0, value=1500.0, step=50.0)
-        spotreba = st.number_input("Spotreba (l/100km):", min_value=1.0, max_value=20.0, value=6.5, step=0.1)
-        cena_phm = st.number_input("Cena PHM (€/l):", min_value=0.50, max_value=3.00, value=1.62, step=0.01)
-        amortizacia = st.number_input("Amortizácia (€/km):", value=0.265, format="%.3f")
-        stravne = st.number_input("Slovenské stravné (€/deň):", value=8.30, step=0.10)
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == "levice2026": # Tvoje heslo
+            st.session_state["authenticated"] = True
+            del st.session_state["password"]
+        else:
+            st.error("❌ Nesprávne heslo")
 
+    if not st.session_state["authenticated"]:
+        st.title("🔒 Prístup do systému")
+        st.text_input("Zadajte prístupové heslo:", type="password", on_change=password_entered, key="password")
+        return False
+    return True
+
+# --- 3. SIDEBAR (Logo a Info o firme) ---
+with st.sidebar:
+    # st.image("logo.png", width=200) # Tu pridaj svoje logo neskôr
+    st.title("AutoCesták PRO")
     st.markdown("---")
-    mesta_sk = st.text_area("Zoznam destinácií (oddeľte čiarkou):", value="Bratislava, Nitra, Trenčín, Poprad, Žilina, Mochovce")
+    st.markdown("### 🏢 O tvorcovi")
+    st.markdown("**Sebastian Tuller**")
+    st.markdown("*Founder & Financial Architect*")
+    st.markdown("---")
+    st.markdown("**Tuller Automation s.r.o.**")
+    st.markdown("Levice, Slovensko")
+    st.markdown("---")
     
-    # Preklad mesiaca na číslo
-    mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, 
-                    "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
-    mesiac_int = mesiace_dict[mesiac_nazov]
-    rok = 2026
+    # Navigácia
+    page = st.radio("Menu:", ["🏠 Domov & Cenník", "📊 Generátor cesťákov", "ℹ️ O nás"])
 
-    # --- TLAČIDLO NA GENEROVANIE ---
-    if st.button("🚀 Vygenerovať SK cesťák", type="primary"):
-        with st.spinner('Počítam kilometre a generujem Excel...'):
-            
-            # 1. MATEMATIKA A SADZBY
-            sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
-            mesta_list = [m.strip() for m in mesta_sk.split(',')]
-            priemer_km = 270 # Odhad na výpočet počtu ciest
-            
-            sk_holidays = holidays.Slovakia(years=rok)
-            
-            # Získanie pracovných dní
-            pracovne_dni = []
-            num_days = calendar.monthrange(rok, mesiac_int)[1]
-            for day in range(1, num_days + 1):
-                d = datetime.date(rok, mesiac_int, day)
-                if d.weekday() < 5 and d not in sk_holidays:
-                    pracovne_dni.append(d)
-            
-            random.shuffle(pracovne_dni)
-            
-            # 2. ROZDELENIE KILOMETROV A DNÍ
-            cena_jednej_cesty = (priemer_km * sadzba_km) + stravne
-            pocet_ciest = max(1, min(len(pracovne_dni), int(round(cielova_suma / cena_jednej_cesty))))
-            
-            celkove_km = int(round((cielova_suma - (pocet_ciest * stravne)) / sadzba_km))
-            trips_km = [celkove_km // pocet_ciest] * pocet_ciest
-            for i in range(celkove_km % pocet_ciest): trips_km[i] += 1
-                
-            for _ in range(pocet_ciest * 2):
-                i, j = random.randint(0, pocet_ciest - 1), random.randint(0, pocet_ciest - 1)
-                if i != j:
-                    shift = random.randint(1, 20)
-                    if trips_km[i] - shift > 50:
-                        trips_km[i] -= shift
-                        trips_km[j] += shift
+# --- 4. OBSAH STRÁNOK ---
 
-            vybrane_dni = sorted(pracovne_dni[:pocet_ciest])
-            
-            # 3. TVORBA EXCELU (Originálna šablóna)
-            wb = Workbook()
-            ws = wb.active
-            ws.title = f"{mesiac_nazov}_{rok}"
+if page == "🏠 Domov & Cenník":
+    st.title("Vitajte v AutoCesták PRO")
+    st.subheader("Najrýchlejší spôsob, ako spracovať firemné cesty.")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.info("### 🆓 FREE")
+        st.markdown("- 5 cesťákov mesačne\n- Iba Slovensko\n- Bez exportu do Excelu")
+        st.button("Vyskúšať", key="free")
 
-            ws.column_dimensions['A'].width = 12  
-            ws.column_dimensions['B'].width = 30  
-            ws.column_dimensions['C'].width = 25  
-            ws.column_dimensions['D'].width = 15  
-            ws.column_dimensions['E'].width = 22  
-            ws.column_dimensions['F'].width = 15  
-            ws.column_dimensions['G'].width = 12  
-            ws.column_dimensions['H'].width = 12  
-            ws.column_dimensions['I'].width = 22  
-            ws.column_dimensions['J'].width = 15  
+    with col2:
+        st.success("### 💎 PRO")
+        st.markdown("- **Neobmedzene** cesťákov\n- Slovensko + Zahraničie\n- **Priamy export do Excelu**\n- Automatické diéty")
+        st.button("Zakúpiť PRO (19€/mes)", key="pro")
 
-            ws['A1'] = f"VYÚČTOVANIE PRACOVNEJ CESTY - {meno}"
-            ws['A1'].font = Font(bold=True)
-            
-            hlavicka = ["Dátum", "ODCHOD-PRÍCHOD", "Použitý dopravný prostriedok", "Vzdialenosť v km", 
-                        "Začiatok a koniec výkonu", "Cestovné", "Stravné", "Nocľažné", "Nutné vedľajšie výdavky", "Spolu"]
-            ws.append(hlavicka)
-            
-            for cell in ws[2]:
-                cell.font = Font(bold=True)
-                cell.alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
+    with col3:
+        st.warning("### 🏢 ENTERPRISE")
+        st.markdown("- Pre účtovné kancelárie\n- Viac užívateľov\n- API prepojenie\n- Prioritná podpora")
+        st.button("Kontaktovať", key="ent")
 
-            ws.append([""] * 10)
-            ws.append([""] * 10)
-            ws.append(["", "", "", "", "", "EUR", "EUR", "EUR", "EUR", "EUR"])
-            for cell in ws[5]: cell.alignment = Alignment(horizontal="right")
+    
 
-            current_row = 6
-            dostupne_mesta = mesta_list.copy()
-            random.shuffle(dostupne_mesta)
-            
-            for idx, datum in enumerate(vybrane_dni):
-                km = trips_km[idx]
-                mesto = dostupne_mesta[idx % len(dostupne_mesta)]
-                cestovne = km * sadzba_km
-                spolu = cestovne + stravne
-                
-                # Zápis do Excelu s ŠPZ vozidla
-                dopravny_prostriedok = f"AUV ({spz})"
-                ws.append([datum.strftime("%Y-%m-%d"), start_miesto, dopravny_prostriedok, km, "8.00", cestovne, stravne, "", "", spolu])
-                ws.cell(row=current_row, column=6).number_format = '0.0000' 
-                ws.cell(row=current_row, column=7).number_format = '0.00'   
-                ws.cell(row=current_row, column=10).number_format = '0.0000' 
-                
-                ws.append(["", mesto, "", "", "16:30:00", "", "", "", "", ""])
-                current_row += 2
+elif page == "📊 Generátor cesťákov":
+    if check_password():
+        st.title("📊 Generátor cestovných príkazov")
+        # --- TU VLOŽÍŠ TEN KÓD, KTORÝ SME ROBILI NAPOSLEDY (ZÁLOŽKY, VÝPOČTY ATĎ.) ---
+        st.write("Vitaj, Sebastian. Systém je pripravený na generovanie.")
+        # (Sem skopíruj kód od tab_sk, tab_zahranicie z minula)
 
-            ws.append([""] * 10) 
-            sum_row = current_row + 1
-            ws.cell(row=sum_row, column=1, value="Spolu")
-            ws.cell(row=sum_row, column=1).font = Font(bold=True)
-            
-            ws.cell(row=sum_row, column=6, value=f"=SUM(F6:F{current_row-1})").number_format = '#,##0.00'
-            ws.cell(row=sum_row, column=7, value=f"=SUM(G6:G{current_row-1})").number_format = '#,##0.00'
-            ws.cell(row=sum_row, column=10, value=f"=SUM(J6:J{current_row-1})").number_format = '#,##0.00'
-            
-            for col in [6, 7, 10]:
-                ws.cell(row=sum_row, column=col).font = Font(bold=True)
-
-            # 4. PRÍPRAVA NA STIAHNUTIE (BEZ UKLADANIA NA DISK)
-            excel_data = io.BytesIO()
-            wb.save(excel_data)
-            excel_data.seek(0)
-            
-            st.success("✅ Excel bol úspešne vygenerovaný!")
-            
-            # Špeciálne Streamlit tlačidlo na stiahnutie súboru
-            st.download_button(
-                label="📥 Stiahnuť Excel Cesťák",
-                data=excel_data,
-                file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_2026.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary"
-            )
-
-# ==========================================
-# ZÁLOŽKA 2: ZAHRANIČIE (Pripravené na ďalší vývoj)
-# ==========================================
-with tab_zahranicie:
-    st.header("Parametre pre Zahraničie")
-    st.info("Na tejto funkcii aktuálne pracujeme. Akonáhle dodá účtovníčka zoznam pravidiel pre diéty a prechody hraníc, bude to tu pridané.")
+elif page == "ℹ️ O nás":
+    st.title("O projekte")
+    st.write("""
+    Tento softvér vznikol ako reakcia na neefektívne ručné spracovávanie cestovných príkazov 
+    v účtovných kanceláriách. Spájame **finančnú expertízu** s **automatizáciou v Pythone**.
+    """)
+    st.markdown("---")
+    st.subheader("Naša vízia")
+    st.write("Pomáhať slovenským podnikateľom tráviť menej času byrokraciou a viac času budovaním biznisu.")
