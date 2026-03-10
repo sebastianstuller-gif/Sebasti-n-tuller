@@ -81,6 +81,7 @@ st.markdown("""
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
     /* --- SOFT GRAY DESIGN PRE POLÍČKA --- */
+    /* Namiesto čiernej dávame sivú, aby bol text vidieť aj bez hackov */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div, 
     div[data-baseweb="textarea"] > div,
