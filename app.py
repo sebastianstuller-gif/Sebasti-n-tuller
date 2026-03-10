@@ -69,7 +69,8 @@ def check_password():
 
 # --- SIDEBAR (Minimalizmus) ---
 with st.sidebar:
-    st.markdown("<h1 style='font-size: 20px;'>AUTOCESTAK pro</h1>", unsafe_allow_html=True)
+    st.image("logo.png", use_container_width=True)
+    st.markdown("---")
     st.markdown("---")
     page = st.radio("Navigácia", ["Domov", "Generátor", "O systéme"])
     st.markdown("---")
