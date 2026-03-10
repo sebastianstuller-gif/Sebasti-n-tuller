@@ -217,3 +217,30 @@ elif page == "O systéme":
         <br><br>
         © 2026 jmcreditplus s.r.o.
     """, unsafe_allow_html=True)
+with t1:
+            col_x, col_y = st.columns(2)
+            with col_x:
+                meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
+                spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
+                mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
+                start_miesto = st.text_input("Miesto štartu", value="Mýtne Ludany")
+                mesta_sk = st.text_area("Destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+                
+            with col_y:
+                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
+                
+                # Spotreba
+                spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
+                
+                # Cena PHM s linkom
+                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Štatistický úrad SR</a></div>", unsafe_allow_html=True)
+                
+                # Amortizácia s linkom
+                amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
+                
+                # Stravné s linkom
+                stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
