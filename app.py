@@ -71,7 +71,7 @@ def check_password():
 
 # --- SIDEBAR (Branding) ---
 with st.sidebar:
-    # Opravený názov súboru na logo.png.png
+    # Kontrola loga pre oba názvy
     if os.path.exists("logo.png.png"):
         st.image("logo.png.png", use_container_width=True)
     elif os.path.exists("logo.png"):
@@ -82,7 +82,7 @@ with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     page = st.radio("Navigácia", ["Domov", "Generátor", "O systéme"])
     st.markdown("---")
-    st.markdown(f"""
+    st.markdown("""
         <div style='font-size: 12px; color: gray; line-height: 1.6;'>
             Founder: <b>Sebastián Štuller</b><br>
             Spracovateľ: <b>jmcreditplus s.r.o.</b><br>
@@ -120,11 +120,100 @@ if page == "Domov":
                 st.info("Platobná brána sa pripravuje.")
 
         with c2:
-            st.markdown(""")
+            st.markdown("""
                 <div class="price-box" style="border: 2px solid #000;">
                     <h4>Ročne</h4>
                     <p>Najlepšia hodnota</p>
                     <h2>100 €</h2>
                     <p>ušetríte 20 € ročne</p>
                 </div>
-            """, unsafe_allow
+            """, unsafe_allow_html=True)
+            if st.button("Aktivovať ročne", key="btn_yr"):
+                st.info("Platobná brána sa pripravuje.")
+
+elif page == "Generátor":
+    if check_password():
+        st.title("Generátor dokumentov")
+        t1, t2 = st.tabs(["Slovensko", "Zahraničie"])
+        
+        with t1:
+            col_x, col_y = st.columns(2)
+            with col_x:
+                meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
+                spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
+                mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
+                start_miesto = st.text_input("Miesto štartu", value="Mýtne Ludany")
+            with col_y:
+                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
+                spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
+                stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
+            
+            mesta_sk = st.text_area("Destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+
+            if st.button("Vygenerovať Excel dokument"):
+                # --- VÝPOČTOVÁ LOGIKA ---
+                sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
+                mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
+                mes_int = mesiace_dict[mesiac_nazov]
+                rok = 2026
+                
+                sk_holidays = holidays.Slovakia(years=rok)
+                dni = [datetime.date(rok, mes_int, d) for d in range(1, calendar.monthrange(rok, mes_int)[1] + 1) 
+                       if datetime.date(rok, mes_int, d).weekday() < 5 and datetime.date(rok, mes_int, d) not in sk_holidays]
+                
+                random.shuffle(dni)
+                
+                cena_jednej_cesty = (270 * sadzba_km) + stravne_val
+                pocet_ciest = max(1, min(len(dni), int(round(cielova_suma / cena_jednej_cesty))))
+                celkove_km = int(round((cielova_suma - (pocet_ciest * stravne_val)) / sadzba_km))
+                
+                km_list = [celkove_km // pocet_ciest] * pocet_ciest
+                for i in range(celkove_km % pocet_ciest): km_list[i] += 1
+                
+                vybrane_dni = sorted(dni[:pocet_ciest])
+                mesta_list = [m.strip() for m in mesta_sk.split(',')]
+
+                # Excel
+                wb = Workbook()
+                ws = wb.active
+                ws.title = f"{mesiac_nazov}_{rok}"
+                ws.column_dimensions['A'].width = 15
+                ws.column_dimensions['B'].width = 30
+                ws.column_dimensions['D'].width = 15
+                ws.column_dimensions['J'].width = 15
+
+                ws['A1'] = f"VYÚČTOVANIE PRACOVNEJ CESTY - {meno}"
+                ws['A1'].font = Font(bold=True)
+                ws.append(["Dátum", "ODCHOD-PRÍCHOD", "Vozidlo", "KM", "Čas", "Cestovné", "Stravné", "Nocľah", "Iné", "Spolu"])
+                
+                current_row = 3
+                for idx, d in enumerate(vybrane_dni):
+                    km = km_list[idx]
+                    cest = km * sadzba_km
+                    ws.append([d.strftime("%d.%m.%Y"), start_miesto, f"AUV ({spz})", km, "08:00", cest, stravne_val, "", "", cest + stravne_val])
+                    ws.append(["", random.choice(mesta_list), "", "", "16:30", "", "", "", "", ""])
+                    current_row += 2
+
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                
+                st.success("Dokument úspešne pripravený.")
+                st.download_button("Stiahnuť súbor (.xlsx)", data=output, file_name=f"Cestak_{mesiac_nazov}.xlsx")
+
+        with t2:
+            st.info("Zahraničné cesťáky: Funkcia bude sprístupnená v najbližšej aktualizácii.")
+
+elif page == "O systéme":
+    st.title("O projekte")
+    st.markdown("""
+        Systém **AUTOCESTAK pro** vyvinul **Sebastián Štuller** pre zefektívnenie procesov v spoločnosti **jmcreditplus s.r.o.**
+        
+        Naším cieľom je digitalizácia tradičného účtovníctva a odstránenie chybovosti pri ručnom spracovávaní dát. 
+        Tento nástroj využíva moderné štatistické metódy na rovnomerné rozdelenie nákladov pri dodržaní všetkých legislatívnych noriem SR.
+        
+        <br><br>
+        © 2026 jmcreditplus s.r.o.
+    """, unsafe_allow_html=True)
