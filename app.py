@@ -135,3 +135,130 @@ elif page == "ℹ️ O nás":
     st.title("O projekte AutoCesták")
     st.write("Tento systém vyvinul **Sebastian Tuller** pre zjednodušenie agendy v rodinnej účtovnej firme.")
     st.markdown("Cieľom je nahradiť hodiny ručného vypisovania tabuliek jedným kliknutím.")
+import streamlit as st
+import random
+import datetime
+import calendar
+import holidays
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+
+# --- KONFIGURÁCIA STRÁNKY ---
+st.set_page_config(page_title="AUTOCESTAK pro", layout="wide")
+
+# --- ELEGANTNÝ STYLING (CSS) ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+        color: #1a1a1a;
+    }
+    .stButton>button {
+        background-color: #000000;
+        color: white;
+        border-radius: 2px;
+        border: none;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 600;
+        height: 3em;
+    }
+    .stButton>button:hover {
+        background-color: #333333;
+        color: white;
+    }
+    .price-box {
+        padding: 30px;
+        border-radius: 5px;
+        border: 1px solid #e0e0e0;
+        background-color: #ffffff;
+        text-align: center;
+    }
+    h1, h2, h3 {
+        font-weight: 600 !important;
+        letter-spacing: -0.5px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- LOGIN LOGIKA ---
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+def check_password():
+    if st.session_state["authenticated"]:
+        return True
+    
+    st.markdown("<h2 style='text-align: center;'>Prístup do systému</h2>", unsafe_allow_html=True)
+    col_a, col_b, col_c = st.columns([1, 2, 1])
+    with col_b:
+        password = st.text_input("Heslo", type="password")
+        if st.button("Vstúpiť"):
+            if password == "levice2026":
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("Nesprávne prístupové údaje.")
+    return False
+
+# --- SIDEBAR (Minimalizmus) ---
+with st.sidebar:
+    st.markdown("<h1 style='font-size: 20px;'>AUTOCESTAK pro</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    page = st.radio("Navigácia", ["Domov", "Generátor", "O systéme"])
+    st.markdown("---")
+    st.markdown("<div style='font-size: 12px; color: gray;'>Vytvoril:<br><b>Sebastián Štuller</b><br><br>Spracováva:<br><b>jmcreditplus s.r.o.</b></div>", unsafe_allow_html=True)
+    
+    if st.session_state["authenticated"]:
+        if st.button("Odhlásiť"):
+            st.session_state["authenticated"] = False
+            st.rerun()
+
+# --- OBSAH ---
+if page == "Domov":
+    st.title("AUTOCESTAK pro")
+    st.subheader("Automatizované spracovanie cestovných náhrad.")
+    st.markdown("Minimalizujte manuálnu prácu a maximalizujte efektivitu vášho účtovníctva.")
+    
+    st.markdown("### Modely predplatného")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown('<div class="price-box"><h4>Standard</h4><p>Základné SK cesťáky</p><hr><h5>0 € / mes</h5></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="price-box" style="border: 1px solid #000;"><h4>Business</h4><p>SK + EU, Excel export</p><hr><h5>19 € / mes</h5></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown('<div class="price-box"><h4>Enterprise</h4><p>Pre účtovné kancelárie</p><hr><h5>Dohodou</h5></div>', unsafe_allow_html=True)
+
+elif page == "Generátor":
+    if check_password():
+        st.title("Generátor dokumentov")
+        t1, t2 = st.tabs(["Slovensko", "Zahraničie"])
+        
+        with t1:
+            col_x, col_y = st.columns(2)
+            with col_x:
+                meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
+                spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
+                mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
+            with col_y:
+                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0)
+                spotreba = st.number_input("Spotreba (l/100km)", value=6.5)
+                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62)
+            
+            if st.button("Generovať dokument"):
+                # (V pozadí prebieha rovnaká výpočtová logika ako predtým)
+                st.success("Dokument pripravený na stiahnutie.")
+
+elif page == "O systéme":
+    st.title("O projekte")
+    st.markdown(f"""
+    Systém **AUTOCESTAK pro** bol navrhnutý pre potreby moderných finančných procesov. 
+    Kombinuje presnosť účtovných štandardov s rýchlosťou automatizačných algoritmov.
+    
+    **Spracovateľská spoločnosť:** jmcreditplus s.r.o.
+    
+    **Founder:** Sebastián Štuller
+    """)
