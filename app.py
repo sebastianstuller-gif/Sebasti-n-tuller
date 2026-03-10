@@ -43,7 +43,7 @@ with st.sidebar:
     page = st.radio("Menu:", ["🏠 Domov & Cenník", "📊 Generátor cesťákov", "ℹ️ O nás"])
     st.markdown("---")
     st.markdown("### 🏢 Kontakt")
-    st.markdown("**Sebastian Tuller**\n\nTuller Automation s.r.o.\nLevice, Slovensko")
+    st.markdown("**Sebastian Štuller**\n\Jmcredit plus s.r.o.\nLevice, Slovensko")
     
     if st.session_state["authenticated"]:
         if st.button("Odhlásiť sa"):
@@ -51,18 +51,6 @@ with st.sidebar:
             st.rerun()
 
 # --- 4. OBSAH STRÁNOK ---
-
-if page == "🏠 Domov & Cenník":
-    st.title("Vitajte v AutoCesták PRO")
-    st.subheader("Automatizácia, ktorá šetrí hodiny ručnej práce.")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown('<div class="price-box"><h3>🆓 FREE</h3><p>5 cesťákov mesačne<br>Iba Slovensko</p><h4>0 €</h4></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown('<div class="price-box" style="border: 2px solid #ff4b4b;"><h3>💎 PRO</h3><p><b>Neobmedzene</b><br>Excel export<br>Zahraničie</p><h4>19 € / mes</h4></div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown('<div class="price-box"><h3>🏢 KANCELÁRIA</h3><p>Viac užívateľov<br>API prístup<br>Podpora</p><h4>Dohodou</h4></div>', unsafe_allow_html=True)
 
 elif page == "📊 Generátor cesťákov":
     if check_password():
@@ -129,11 +117,11 @@ elif page == "📊 Generátor cesťákov":
                 st.download_button("📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{mesiac_nazov}.xlsx")
 
         with tab_zahranicie:
-            st.info("Sekcia Zahraničie sa pripravuje podľa podkladov od účtovníčky.")
+            st.info("Sekcia Zahraničie sa pripravuje.")
 
 elif page == "ℹ️ O nás":
     st.title("O projekte AutoCesták")
-    st.write("Tento systém vyvinul **Sebastian Tuller** pre zjednodušenie agendy v rodinnej účtovnej firme.")
+    st.write("Tento systém vyvinul **Sebastian Štuller** pre zjednodušenie agendy v  účtovných firmách.")
     st.markdown("Cieľom je nahradiť hodiny ručného vypisovania tabuliek jedným kliknutím.")
 import streamlit as st
 import random
