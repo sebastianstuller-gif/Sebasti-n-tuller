@@ -41,35 +41,36 @@ translations = {
 }
 t = translations[st.session_state["lang"]]
 
-# --- POKROČILÝ CSS STYLING ---
-# --- POKROČILÝ CSS STYLING ---
+# --- POKROČILÝ CSS STYLING (Soft Gray Design) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
     
-    html, body, [class*="css"], .stApp { font-family: 'Inter', sans-serif; background-color: #ffffff !important; color: #000000 !important; }
+    html, body, [class*="css"], .stApp { font-family: 'Inter', sans-serif; background-color: #ffffff !important; color: #111111 !important; }
     
     /* Skrytie bočného panela */
     [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebar"] { display: none !important; }
     
     /* Navigácia */
-    .nav-btn > button { background-color: transparent !important; color: #000000 !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; transition: 0.2s; padding: 0 10px !important; }
-    .nav-btn > button:hover { color: #ff4b4b !important; }
+    .nav-btn > button { background-color: transparent !important; color: #111111 !important; font-weight: 500 !important; border: none !important; box-shadow: none !important; transition: 0.2s; padding: 0 10px !important; }
+    .nav-btn > button:hover { color: #555555 !important; }
     
     /* Jazyk */
     .lang-btn > button { background-color: transparent !important; color: #aaaaaa !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
-    .lang-btn > button:hover { color: #000000 !important; }
-    .lang-active > button { background-color: transparent !important; color: #000000 !important; font-weight: 800 !important; border: none !important; border-bottom: 2px solid #000 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
+    .lang-btn > button:hover { color: #111111 !important; }
+    .lang-active > button { background-color: transparent !important; color: #111111 !important; font-weight: 800 !important; border: none !important; border-bottom: 2px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
     
-    .login-btn > button { background-color: #f0f0f0 !important; color: #000 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; }
+    .login-btn > button { background-color: #f4f4f5 !important; color: #111 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; transition: 0.2s; }
+    .login-btn > button:hover { background-color: #e4e4e7 !important; }
     
+    /* Čierne boxy v cenníku */
     .black-box { background-color: #111111; color: #ffffff; padding: 40px; border-radius: 12px; text-align: center; }
     .black-box h4 { color: #aaaaaa; font-weight: 400; margin-bottom: 10px; }
     .black-box h2 { color: #ffffff; font-size: 38px; margin: 10px 0 30px 0; font-weight: 800; }
     
-    .buy-btn > button { background-color: #ffffff !important; color: #000000 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; }
-    .buy-btn > button:hover { background-color: #dddddd !important; }
+    .buy-btn > button { background-color: #ffffff !important; color: #111111 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
+    .buy-btn > button:hover { background-color: #f4f4f5 !important; }
     
     .contact-box { background-color: #f8f9fa; border: 1px solid #eeeeee; padding: 30px; border-radius: 16px; margin-top: 40px; display: inline-block; min-width: 350px; }
     .contact-box .small-text { color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
@@ -79,40 +80,38 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* --- ULTIMÁTNY FIX PRE BIELE PÍSMO V ČIERNYCH BUNKÁCH --- */
-    
-    /* 1. Obaly buniek na čierno */
+    /* --- SOFT GRAY DESIGN PRE POLÍČKA --- */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div, 
     div[data-baseweb="textarea"] > div,
     .stTextInput div[data-baseweb="input"],
     .stNumberInput div[data-baseweb="input"] { 
-        background-color: #111111 !important; 
-        border: 1px solid #333333 !important; 
-        border-radius: 6px !important; 
+        background-color: #f4f4f5 !important; /* Jemná sivá */
+        border: 1px solid transparent !important; /* Bez tvrdého okraja */
+        border-radius: 8px !important; 
+        transition: border 0.2s;
     }
     
-    /* 2. Samotný text vnútri (natvrdo na bielo) */
-    div[data-baseweb="input"] input, 
-    div[data-baseweb="textarea"] textarea,
-    input[class*="st-"], 
-    textarea[class*="st-"] {
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-        caret-color: #ffffff !important;
-        background-color: transparent !important;
+    /* Pri kliknutí sa jemne orámuje na sivo */
+    div[data-baseweb="input"] > div:focus-within, 
+    div[data-baseweb="textarea"] > div:focus-within {
+        border: 1px solid #d4d4d8 !important;
+    }
+
+    input[type="text"], input[type="password"], input[type="number"], textarea, div[data-baseweb="select"] * {
+        color: #111111 !important; /* Čierny text pre perfektnú čitateľnosť */
+        font-weight: 500;
     }
     
-    /* 3. Fix pre Selectbox (roletku) */
-    div[data-baseweb="select"] span {
-        color: #ffffff !important;
-    }
+    label, label p { color: #555555 !important; font-weight: 500 !important; font-size: 14px !important; margin-bottom: 4px !important; }
     
-    /* Názvy nad bunkami ostanú čierne */
-    label, label p { color: #000000 !important; font-weight: 600 !important; }
+    /* Hlavné tlačidlo Generovať (Čierne) */
+    .gen-btn > button { background-color: #111111 !important; color: #ffffff !important; width: 100%; height: 3.5em; border-radius: 8px !important; font-weight: 600 !important; border: none !important; transition: 0.2s; }
+    .gen-btn > button:hover { background-color: #333333 !important; }
     
-    /* Tlačidlo Generovať */
-    .gen-btn > button { background-color: #000 !important; color: #fff !important; width: 100%; height: 3.5em; border-radius: 4px !important; font-weight: bold !important; border: none !important; }
+    /* Uprava linkov pod políčkami */
+    .source-link a { color: #888888 !important; text-decoration: none; font-size: 12px; transition: 0.2s; }
+    .source-link a:hover { color: #111111 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -273,7 +272,9 @@ elif st.session_state["page"] == "Cesťáky":
     
     else:
         st.title(t["gen_title"])
-        col_x, col_y = st.columns(2)
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_x, col_space, col_y = st.columns([1, 0.1, 1])
+        
         with col_x:
             meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
             spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
@@ -285,19 +286,18 @@ elif st.session_state["page"] == "Cesťáky":
             cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
             
             spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
-            st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
+            st.markdown("<div class='source-link' style='margin-top: -10px; margin-bottom: 15px;'>ℹ️ Údaj z technického preukazu (kombinovaná spotreba).</div>", unsafe_allow_html=True)
             
             cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: ŠÚ SR (Mesačné ceny PHM)</a></div>", unsafe_allow_html=True)
+            st.markdown("<div class='source-link' style='margin-top: -10px; margin-bottom: 15px;'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank'>🔗 Zdroj: ŠÚ SR (Mesačné ceny PHM)</a></div>", unsafe_allow_html=True)
             
             amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
-            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
+            st.markdown("<div class='source-link' style='margin-top: -10px; margin-bottom: 15px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
             
             stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
-            st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
+            st.markdown("<div class='source-link' style='margin-top: -10px; margin-bottom: 15px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
 
-        st.markdown('<div style="margin-top:20px;"></div>', unsafe_allow_html=True)
-        st.markdown("""<style>.gen-btn > button { background-color: #000 !important; color: #fff !important; width: 100%; height: 3em; border-radius: 4px !important; font-weight: bold; border: none !important; }</style>""", unsafe_allow_html=True)
+        st.markdown('<div style="margin-top:30px;"></div>', unsafe_allow_html=True)
         st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
         if st.button("🚀 Vygenerovať Excel"):
             with st.spinner('Pripravujem dáta a generujem Excel...'):
