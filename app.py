@@ -8,7 +8,7 @@ import os
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
-# --- KONFIGURÁCIA STRÁNKY ---
+# --- KONFIGURÁCIA STRÁNKY A TÉMY ---
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
 
 # --- JAZYKOVÝ SLOVNÍK (SK / EN) ---
@@ -41,12 +41,20 @@ translations = {
 }
 t = translations[st.session_state["lang"]]
 
-# --- POKROČILÝ CSS STYLING (Soft Gray Design - ULTIMATE FIX) ---
+# --- POKROČILÝ CSS STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
     
-    html, body, [class*="css"], .stApp { font-family: 'Inter', sans-serif; background-color: #ffffff !important; color: #111111 !important; }
+    /* VYNÚTENIE SVETLEJ TÉMY NA ÚROVNI CELEJ APLIKÁCIE */
+    :root {
+        color-scheme: light !important;
+    }
+    html, body, [class*="css"], .stApp { 
+        font-family: 'Inter', sans-serif !important; 
+        background-color: #ffffff !important; 
+        color: #111111 !important; 
+    }
     
     /* Skrytie bočného panela */
     [data-testid="collapsedControl"] { display: none !important; }
@@ -80,40 +88,37 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* --- ULTIMATE FIX PRE POLÍČKA (Soft Gray) --- */
-    /* Zameriavame sa na hlavné kontajnery widgetov v Streamlite */
-    div.stTextInput > div > div, 
-    div.stNumberInput > div > div, 
-    div.stSelectbox > div > div > div,
-    div.stTextArea > div > div {
-        background-color: #f4f4f5 !important; /* Jemná svetlosivá */
-        border: 1px solid #e4e4e7 !important; /* Jemný sivý okraj */
+    /* --- FIX PRE POLÍČKA (Svetlo-sivý elegantný dizajn) --- */
+    /* Vynútenie svetlého pozadia pre všetky typy inputov */
+    .stTextInput input, 
+    .stNumberInput input, 
+    .stTextArea textarea, 
+    .stSelectbox div[data-baseweb="select"] {
+        background-color: #f4f4f5 !important; 
+        color: #111111 !important; 
+        border: 1px solid #e4e4e7 !important; 
         border-radius: 6px !important;
-        color: #111111 !important; /* Čierny text */
     }
 
-    /* Poistenie, že aj samotný input element nemá vlastné tmavé pozadie */
-    div.stTextInput input, 
-    div.stNumberInput input, 
-    div.stTextArea textarea {
+    /* Prebitie vnútorných elementov Streamlitu, aby text NEBOL biely/čierny omylom */
+    [data-baseweb="input"] input, 
+    [data-baseweb="textarea"] textarea,
+    [data-baseweb="select"] span {
+        color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
         background-color: transparent !important;
-        color: #111111 !important;
     }
     
-    /* Pre Selectbox (text zobrazený v roletke) */
-    div.stSelectbox span {
-        color: #111111 !important;
-    }
-
-    label, label p { color: #555555 !important; font-weight: 500 !important; font-size: 14px !important; margin-bottom: 4px !important; }
+    /* Názvy nad bunkami */
+    label, label p { color: #333333 !important; font-weight: 600 !important; font-size: 14px !important; margin-bottom: 4px !important; }
     
-    /* Hlavné tlačidlo Generovať (Čierne) */
+    /* Hlavné tlačidlo Generovať */
     .gen-btn > button { background-color: #111111 !important; color: #ffffff !important; width: 100%; height: 3.5em; border-radius: 8px !important; font-weight: 600 !important; border: none !important; transition: 0.2s; }
     .gen-btn > button:hover { background-color: #333333 !important; }
     
-    /* Uprava linkov pod políčkami */
-    .source-link a { color: #888888 !important; text-decoration: none; font-size: 12px; transition: 0.2s; }
-    .source-link a:hover { color: #111111 !important; }
+    /* Linky */
+    .source-link a { color: #666666 !important; text-decoration: none; font-size: 12px; font-weight: 500;}
+    .source-link a:hover { color: #111111 !important; text-decoration: underline;}
     </style>
     """, unsafe_allow_html=True)
 
