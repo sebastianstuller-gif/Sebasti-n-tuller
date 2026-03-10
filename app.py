@@ -152,8 +152,8 @@ elif page == "Generátor":
                 spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
                 st.caption("ℹ️ *Údaj z technického preukazu (kombinovaná spotreba).*")
                 
-                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Štatistický úrad SR</a></div>", unsafe_allow_html=True)
+               cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: ŠÚ SR (Mesačné ceny PHM)</a></div>", unsafe_allow_html=True)
                 
                 amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
                 st.markdown("<div style='margin-top: -10px; margin-bottom: 15px; font-size: 12px;'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank' style='color: #666; text-decoration: none;'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
