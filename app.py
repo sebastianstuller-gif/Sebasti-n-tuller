@@ -120,7 +120,7 @@ if page == "Domov":
                 st.info("Platobná brána sa pripravuje.")
 
         with c2:
-            st.markdown("""
+            st.markdown(""")
                 <div class="price-box" style="border: 2px solid #000;">
                     <h4>Ročne</h4>
                     <p>Najlepšia hodnota</p>
