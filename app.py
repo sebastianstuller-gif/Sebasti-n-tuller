@@ -7,90 +7,86 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
-# --- 1. ZÁKLADNÉ NASTAVENIE A STYLING ---
+# --- 1. ZÁKLADNÉ NASTAVENIE ---
 st.set_page_config(page_title="AutoCesták PRO", page_icon="🚀", layout="wide")
 
-# Vlastné CSS pre krajší vzhľad
+# Vlastné CSS pre biznis vzhľad
 st.markdown("""
     <style>
-    .main { background-color: #f5f7f9; }
     .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #ff4b4b; color: white; }
-    .sidebar-text { font-size: 14px; color: #555; }
+    .price-box { padding: 20px; border-radius: 10px; border: 1px solid #ddd; background-color: white; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. LOGIN LOGIKA ---
+# --- 2. LOGIN LOGIKA (Session State) ---
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
 def check_password():
-    def password_entered():
-        if st.session_state["password"] == "levice2026": # Tvoje heslo
+    if st.session_state["authenticated"]:
+        return True
+    
+    st.title("🔒 Prístup do systému")
+    password = st.text_input("Zadajte prístupové heslo:", type="password")
+    if st.button("Prihlásiť sa"):
+        if password == "levice2026":
             st.session_state["authenticated"] = True
-            del st.session_state["password"]
+            st.rerun()
         else:
             st.error("❌ Nesprávne heslo")
+    return False
 
-    if not st.session_state["authenticated"]:
-        st.title("🔒 Prístup do systému")
-        st.text_input("Zadajte prístupové heslo:", type="password", on_change=password_entered, key="password")
-        return False
-    return True
-
-# --- 3. SIDEBAR (Logo a Info o firme) ---
+# --- 3. SIDEBAR (Navigácia a Branding) ---
 with st.sidebar:
-    # st.image("logo.png", width=200) # Tu pridaj svoje logo neskôr
     st.title("AutoCesták PRO")
     st.markdown("---")
-    st.markdown("### 🏢 O tvorcovi")
-    st.markdown("**Sebastian Tuller**")
-    st.markdown("*Founder & Financial Architect*")
-    st.markdown("---")
-    st.markdown("**Tuller Automation s.r.o.**")
-    st.markdown("Levice, Slovensko")
-    st.markdown("---")
-    
-    # Navigácia
     page = st.radio("Menu:", ["🏠 Domov & Cenník", "📊 Generátor cesťákov", "ℹ️ O nás"])
+    st.markdown("---")
+    st.markdown("### 🏢 Kontakt")
+    st.markdown("**Sebastian Tuller**\n\nTuller Automation s.r.o.\nLevice, Slovensko")
+    
+    if st.session_state["authenticated"]:
+        if st.button("Odhlásiť sa"):
+            st.session_state["authenticated"] = False
+            st.rerun()
 
 # --- 4. OBSAH STRÁNOK ---
 
 if page == "🏠 Domov & Cenník":
     st.title("Vitajte v AutoCesták PRO")
-    st.subheader("Najrýchlejší spôsob, ako spracovať firemné cesty.")
+    st.subheader("Automatizácia, ktorá šetrí hodiny ručnej práce.")
     
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        st.info("### 🆓 FREE")
-        st.markdown("- 5 cesťákov mesačne\n- Iba Slovensko\n- Bez exportu do Excelu")
-        st.button("Vyskúšať", key="free")
-
+        st.markdown('<div class="price-box"><h3>🆓 FREE</h3><p>5 cesťákov mesačne<br>Iba Slovensko</p><h4>0 €</h4></div>', unsafe_allow_html=True)
     with col2:
-        st.success("### 💎 PRO")
-        st.markdown("- **Neobmedzene** cesťákov\n- Slovensko + Zahraničie\n- **Priamy export do Excelu**\n- Automatické diéty")
-        st.button("Zakúpiť PRO (19€/mes)", key="pro")
-
+        st.markdown('<div class="price-box" style="border: 2px solid #ff4b4b;"><h3>💎 PRO</h3><p><b>Neobmedzene</b><br>Excel export<br>Zahraničie</p><h4>19 € / mes</h4></div>', unsafe_allow_html=True)
     with col3:
-        st.warning("### 🏢 ENTERPRISE")
-        st.markdown("- Pre účtovné kancelárie\n- Viac užívateľov\n- API prepojenie\n- Prioritná podpora")
-        st.button("Kontaktovať", key="ent")
-
-    
+        st.markdown('<div class="price-box"><h3>🏢 KANCELÁRIA</h3><p>Viac užívateľov<br>API prístup<br>Podpora</p><h4>Dohodou</h4></div>', unsafe_allow_html=True)
 
 elif page == "📊 Generátor cesťákov":
     if check_password():
         st.title("📊 Generátor cestovných príkazov")
-        # --- TU VLOŽÍŠ TEN KÓD, KTORÝ SME ROBILI NAPOSLEDY (ZÁLOŽKY, VÝPOČTY ATĎ.) ---
-        st.write("Vitaj, Sebastian. Systém je pripravený na generovanie.")
-        # (Sem skopíruj kód od tab_sk, tab_zahranicie z minula)
+        
+        tab_sk, tab_zahranicie = st.tabs(["🇸🇰 Slovenské cesťáky", "🌍 Zahraničné cesťáky"])
 
-elif page == "ℹ️ O nás":
-    st.title("O projekte")
-    st.write("""
-    Tento softvér vznikol ako reakcia na neefektívne ručné spracovávanie cestovných príkazov 
-    v účtovných kanceláriách. Spájame **finančnú expertízu** s **automatizáciou v Pythone**.
-    """)
-    st.markdown("---")
-    st.subheader("Naša vízia")
-    st.write("Pomáhať slovenským podnikateľom tráviť menej času byrokraciou a viac času budovaním biznisu.")
+        with tab_sk:
+            col1, col2 = st.columns(2)
+            with col1:
+                meno = st.text_input("Meno a Priezvisko:", value="Jozef Mrkvička")
+                spz = st.text_input("ŠPZ Vozidla:", value="LV-123XY")
+                mesiac_nazov = st.selectbox("Mesiac:", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
+                start_miesto = st.text_input("Miesto štartu:", value="Mýtne Ludany")
+            with col2:
+                cielova_suma = st.number_input("Cieľová suma mesačne (€):", value=1500.0)
+                spotreba = st.number_input("Spotreba (l/100km):", value=6.5)
+                cena_phm = st.number_input("Cena PHM (€/l):", value=1.62)
+                amortizacia = st.number_input("Amortizácia (€/km):", value=0.265, format="%.3f")
+                stravne_val = st.number_input("Stravné (€/deň):", value=8.30)
+
+            mesta_sk = st.text_area("Zoznam destinácií:", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+
+            if st.button("🚀 Vygenerovať SK cesťák"):
+                # --- VÝPOČTOVÁ LOGIKA ---
+                sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
+                mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September":
