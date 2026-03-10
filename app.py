@@ -89,4 +89,49 @@ elif page == "📊 Generátor cesťákov":
             if st.button("🚀 Vygenerovať SK cesťák"):
                 # --- VÝPOČTOVÁ LOGIKA ---
                 sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
-                mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September":
+                mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
+                mes_int = mesiace_dict[mesiac_nazov]
+                
+                sk_holidays = holidays.Slovakia(years=2026)
+                dni = [datetime.date(2026, mes_int, d) for d in range(1, calendar.monthrange(2026, mes_int)[1] + 1) 
+                       if datetime.date(2026, mes_int, d).weekday() < 5 and datetime.date(2026, mes_int, d) not in sk_holidays]
+                
+                random.shuffle(dni)
+                pocet_ciest = max(1, min(len(dni), int(round(cielova_suma / ((270 * sadzba_km) + stravne_val)))))
+                celkove_km = int(round((cielova_suma - (pocet_ciest * stravne_val)) / sadzba_km))
+                
+                # Rozdelenie KM
+                km_list = [celkove_km // pocet_ciest] * pocet_ciest
+                for i in range(celkove_km % pocet_ciest): km_list[i] += 1
+                
+                vybrane_dni = sorted(dni[:pocet_ciest])
+                mesta_list = [m.strip() for m in mesta_sk.split(',')]
+
+                # Excel
+                wb = Workbook()
+                ws = wb.active
+                ws.append(["VYÚČTOVANIE PRACOVNEJ CESTY", "", "", "", "", "", "", "", "", ""])
+                ws.append(["Dátum", "ODCHOD-PRÍCHOD", "Vozidlo", "KM", "Čas", "Cestovné", "Stravné", "Nocľah", "Iné", "Spolu"])
+                
+                curr = 3
+                for idx, d in enumerate(vybrane_dni):
+                    km = km_list[idx]
+                    cest = km * sadzba_km
+                    ws.append([d.strftime("%Y-%m-%d"), start_miesto, spz, km, "8:00", cest, stravne_val, "", "", cest + stravne_val])
+                    ws.append(["", random.choice(mesta_list), "", "", "16:30", "", "", "", "", ""])
+                    curr += 2
+                
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                
+                st.success("✅ Hotovo!")
+                st.download_button("📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{mesiac_nazov}.xlsx")
+
+        with tab_zahranicie:
+            st.info("Sekcia Zahraničie sa pripravuje podľa podkladov od účtovníčky.")
+
+elif page == "ℹ️ O nás":
+    st.title("O projekte AutoCesták")
+    st.write("Tento systém vyvinul **Sebastian Tuller** pre zjednodušenie agendy v rodinnej účtovnej firme.")
+    st.markdown("Cieľom je nahradiť hodiny ručného vypisovania tabuliek jedným kliknutím."
