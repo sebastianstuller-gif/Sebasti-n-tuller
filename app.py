@@ -69,7 +69,7 @@ def check_password():
 
 # --- SIDEBAR (Minimalizmus) ---
 with st.sidebar:
-    st.image("logo.png", use_container_width=True)
+    st.image("logo.png.png", use_container_width=True)
     st.markdown("---")
     st.markdown("---")
     page = st.radio("Navigácia", ["Domov", "Generátor", "O systéme"])
