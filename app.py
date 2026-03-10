@@ -41,7 +41,7 @@ translations = {
 }
 t = translations[st.session_state["lang"]]
 
-# --- POKROČILÝ CSS STYLING (Soft Gray Design) ---
+# --- POKROČILÝ CSS STYLING (Soft Gray Design - ULTIMATE FIX) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
@@ -80,30 +80,31 @@ st.markdown("""
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     
-    /* --- SOFT GRAY DESIGN PRE POLÍČKA --- */
-    /* Namiesto čiernej dávame sivú, aby bol text vidieť aj bez hackov */
-    div[data-baseweb="input"] > div, 
-    div[data-baseweb="select"] > div, 
-    div[data-baseweb="textarea"] > div,
-    .stTextInput div[data-baseweb="input"],
-    .stNumberInput div[data-baseweb="input"] { 
-        background-color: #f4f4f5 !important; /* Jemná sivá */
-        border: 1px solid transparent !important; /* Bez tvrdého okraja */
-        border-radius: 8px !important; 
-        transition: border 0.2s;
-    }
-    
-    /* Pri kliknutí sa jemne orámuje na sivo */
-    div[data-baseweb="input"] > div:focus-within, 
-    div[data-baseweb="textarea"] > div:focus-within {
-        border: 1px solid #d4d4d8 !important;
+    /* --- ULTIMATE FIX PRE POLÍČKA (Soft Gray) --- */
+    /* Zameriavame sa na hlavné kontajnery widgetov v Streamlite */
+    div.stTextInput > div > div, 
+    div.stNumberInput > div > div, 
+    div.stSelectbox > div > div > div,
+    div.stTextArea > div > div {
+        background-color: #f4f4f5 !important; /* Jemná svetlosivá */
+        border: 1px solid #e4e4e7 !important; /* Jemný sivý okraj */
+        border-radius: 6px !important;
+        color: #111111 !important; /* Čierny text */
     }
 
-    input[type="text"], input[type="password"], input[type="number"], textarea, div[data-baseweb="select"] * {
-        color: #111111 !important; /* Čierny text pre perfektnú čitateľnosť */
-        font-weight: 500;
+    /* Poistenie, že aj samotný input element nemá vlastné tmavé pozadie */
+    div.stTextInput input, 
+    div.stNumberInput input, 
+    div.stTextArea textarea {
+        background-color: transparent !important;
+        color: #111111 !important;
     }
     
+    /* Pre Selectbox (text zobrazený v roletke) */
+    div.stSelectbox span {
+        color: #111111 !important;
+    }
+
     label, label p { color: #555555 !important; font-weight: 500 !important; font-size: 14px !important; margin-bottom: 4px !important; }
     
     /* Hlavné tlačidlo Generovať (Čierne) */
