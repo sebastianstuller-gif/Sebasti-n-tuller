@@ -13,7 +13,7 @@ from openpyxl.styles import Font, Alignment
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
 
 # --- CACHOVANIE KURZOV ECB ---
-@st.cache_data(ttl=3600) # Aktualizuje kurzy každú hodinu
+@st.cache_data(ttl=3600)
 def get_exchange_rate(currency):
     try:
         response = requests.get("https://api.frankfurter.app/latest?from=EUR")
@@ -23,7 +23,7 @@ def get_exchange_rate(currency):
             return rates[currency]
     except Exception as e:
         pass
-    # Záložné statické kurzy, ak by vypadol internet/API
+    # Záložné kurzy
     fallbacks = {"CZK": 25.3, "SEK": 11.2}
     return fallbacks.get(currency, 1.0)
 
@@ -233,7 +233,7 @@ elif st.session_state["page"] == "Cesťáky":
         st.title(t["gen_title"])
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # NASTAVENIA ČASU A KRAJINY
+        # --- NASTAVENIA ČASU A KRAJINY ---
         mesiace_zoznam = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"]
         c_krajina, c_rok, c_mes = st.columns(3)
         with c_krajina: krajina = st.selectbox("Krajina cesty", ["Slovensko", "Nemecko", "Rakúsko", "Belgicko", "Maďarsko", "Česko", "Švédsko"])
@@ -242,31 +242,40 @@ elif st.session_state["page"] == "Cesťáky":
         
         mesiac_int = mesiace_zoznam.index(mesiac_nazov) + 1
         
-        # LOGIKA PRE AMORTIZÁCIU A STRAVNÉ
+        # --- LOGIKA PRE AMORTIZÁCIU A STRAVNÉ ---
+        # 1. Amortizácia (podľa presných pravidiel)
         def_amort = 0.313
         if rok < 2026:
             if mesiac_int <= 2: def_amort = 0.265
             elif mesiac_int <= 5: def_amort = 0.281
             else: def_amort = 0.296
             
-        def_stravne = 9.30
+        # 2. Stravné (Slovensko a Zahraničie)
+        kurz_mena = "EUR"
+        def_kurz = 1.0
+        stravne_local = 0.0
+        
         if krajina == "Slovensko":
-            if rok < 2026:
-                if mesiac_int <= 3: def_stravne = 8.30
-                elif mesiac_int <= 11: def_stravne = 8.80
-                else: def_stravne = 9.30
+            if rok >= 2026:
+                def_stravne_eur = 9.30
             else:
-                def_stravne = 9.30
-        elif krajina in ["Nemecko", "Rakúsko", "Belgicko"]: def_stravne = 45.0
-        elif krajina == "Maďarsko": def_stravne = 39.0
+                if mesiac_int <= 3: def_stravne_eur = 8.30
+                elif mesiac_int <= 11: def_stravne_eur = 8.80
+                else: def_stravne_eur = 9.30
+        elif krajina in ["Nemecko", "Rakúsko", "Belgicko"]:
+            def_stravne_eur = 45.0
+        elif krajina == "Maďarsko":
+            def_stravne_eur = 39.0
         elif krajina == "Česko": 
-            kurz = get_exchange_rate("CZK")
-            def_stravne = round(600 / kurz, 2)
-            st.toast(f"Stiahnutý kurz ECB: 1 EUR = {kurz} CZK")
+            stravne_local = 600.0
+            kurz_mena = "CZK"
+            def_kurz = get_exchange_rate("CZK")
+            def_stravne_eur = round(stravne_local / def_kurz, 2)
         elif krajina == "Švédsko":
-            kurz = get_exchange_rate("SEK")
-            def_stravne = round(455 / kurz, 2)
-            st.toast(f"Stiahnutý kurz ECB: 1 EUR = {kurz} SEK")
+            stravne_local = 455.0
+            kurz_mena = "SEK"
+            def_kurz = get_exchange_rate("SEK")
+            def_stravne_eur = round(stravne_local / def_kurz, 2)
 
         st.markdown("---")
         
@@ -287,16 +296,22 @@ elif st.session_state["page"] == "Cesťáky":
             cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
             
             spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
-            st.markdown("<div class='source-link'>ℹ️ Údaj z technického preukazu (kombinovaná spotreba).</div>", unsafe_allow_html=True)
             
             cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-            st.markdown("<div class='source-link'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank'>🔗 Zdroj: ŠÚ SR</a></div>", unsafe_allow_html=True)
             
-            amortizacia = st.number_input("Amortizácia (€/km)", value=def_amort, format="%.3f")
-            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank'>🔗 Automaticky vypočítané podľa Zákona (MPSVR SR)</a></div>", unsafe_allow_html=True)
+            # Automaticky dosadená amortizácia
+            amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
+            st.markdown("<div class='source-link'>🔗 Hodnota bola automaticky upravená podľa vybraného mesiaca a roku.</div>", unsafe_allow_html=True)
             
-            stravne_val = st.number_input("Stravné (€/deň)", value=def_stravne, step=0.10)
-            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank'>🔗 Automatická sadzba pre zvolenú krajinu a dátum</a></div>", unsafe_allow_html=True)
+            # Logika pre Kurz a Stravné
+            if kurz_mena != "EUR":
+                kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
+                stravne_eur_calc = round(stravne_local / kurz_input, 2)
+                stravne_val = st.number_input(f"Stravné v € ({stravne_local} {kurz_mena} prepočítané kurzom)", value=float(stravne_eur_calc), step=0.10)
+                st.markdown(f"<div class='source-link'>🔗 Kurz z ECB. Môžete ho manuálne upraviť.</div>", unsafe_allow_html=True)
+            else:
+                stravne_val = st.number_input("Stravné (€/deň)", value=float(def_stravne_eur), step=0.10)
+                st.markdown("<div class='source-link'>🔗 Hodnota bola automaticky upravená podľa krajiny a obdobia.</div>", unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top:30px;"></div>', unsafe_allow_html=True)
         
