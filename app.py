@@ -5,13 +5,29 @@ import calendar
 import holidays
 import io
 import os
+import requests
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
 # --- KONFIGURÁCIA STRÁNKY ---
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
 
-# --- JAZYKOVÝ SLOVNÍK (SK / EN) ---
+# --- CACHOVANIE KURZOV ECB ---
+@st.cache_data(ttl=3600) # Aktualizuje kurzy každú hodinu
+def get_exchange_rate(currency):
+    try:
+        response = requests.get("https://api.frankfurter.app/latest?from=EUR")
+        data = response.json()
+        rates = data.get("rates", {})
+        if currency in rates:
+            return rates[currency]
+    except Exception as e:
+        pass
+    # Záložné statické kurzy, ak by vypadol internet/API
+    fallbacks = {"CZK": 25.3, "SEK": 11.2}
+    return fallbacks.get(currency, 1.0)
+
+# --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
 if "authenticated" not in st.session_state: st.session_state["authenticated"] = False
@@ -41,94 +57,73 @@ translations = {
 }
 t = translations[st.session_state["lang"]]
 
-# --- POKROČILÝ CSS STYLING ---
+# --- CSS STYLING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
-    
     html, body, [class*="css"], .stApp { font-family: 'Inter', sans-serif !important; background-color: #ffffff !important; color: #111111 !important; }
     [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stSidebar"] { display: none !important; }
-    
     .nav-btn > button { background-color: transparent !important; color: #111111 !important; font-weight: 500 !important; border: none !important; box-shadow: none !important; transition: 0.2s; padding: 0 10px !important; }
     .nav-btn > button:hover { color: #555555 !important; }
-    
     .lang-btn > button { background-color: transparent !important; color: #aaaaaa !important; font-weight: 600 !important; border: none !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
     .lang-btn > button:hover { color: #111111 !important; }
     .lang-active > button { background-color: transparent !important; color: #111111 !important; font-weight: 800 !important; border: none !important; border-bottom: 2px solid #111 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 5px !important; min-width: auto !important; height: auto !important; }
-    
     .login-btn > button { background-color: #f4f4f5 !important; color: #111 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; transition: 0.2s; }
     .login-btn > button:hover { background-color: #e4e4e7 !important; }
-    
     .black-box { background-color: #111111; color: #ffffff; padding: 40px; border-radius: 12px; text-align: center; }
     .black-box h4 { color: #aaaaaa; font-weight: 400; margin-bottom: 10px; }
     .black-box h2 { color: #ffffff; font-size: 38px; margin: 10px 0 30px 0; font-weight: 800; }
-    
     .buy-btn > button { background-color: #ffffff !important; color: #111111 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
     .buy-btn > button:hover { background-color: #f4f4f5 !important; }
-    
     .contact-box { background-color: #f8f9fa; border: 1px solid #eeeeee; padding: 30px; border-radius: 16px; margin-top: 40px; display: inline-block; min-width: 350px; }
     .contact-box .small-text { color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
     .contact-box h3 { font-size: 24px; font-weight: 800; margin: 0 0 5px 0; }
     .contact-box .email { color: #555555; font-size: 15px; margin: 0; }
-    
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
-    
-    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: #f4f4f5 !important; color: #111111 !important; border: 1px solid #e4e4e7 !important; border-radius: 6px !important;
-    }
+    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] { background-color: #f4f4f5 !important; color: #111111 !important; border: 1px solid #e4e4e7 !important; border-radius: 6px !important; }
     label, label p { color: #333333 !important; font-weight: 600 !important; font-size: 14px !important; margin-bottom: 4px !important; }
-    
     .gen-btn > button { background-color: #111111 !important; color: #ffffff !important; width: 100%; height: 3.5em; border-radius: 8px !important; font-weight: 600 !important; border: none !important; transition: 0.2s; }
     .gen-btn > button:hover { background-color: #333333 !important; }
-    
-    .source-link { font-size: 12px; margin-top: -10px; margin-bottom: 15px; }
+    .source-link { font-size: 12px; margin-top: -10px; margin-bottom: 15px; color: #666;}
     .source-link a { color: #666666 !important; text-decoration: none; font-weight: 500;}
     .source-link a:hover { color: #111111 !important; text-decoration: underline;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- TOP NAVIGATION BAR ---
+# --- NAVIGÁCIA ---
 col_logo, col_nav0, col_nav1, col_nav2, col_nav3, col_space, col_sk, col_en, col_login = st.columns([2.5, 0.8, 0.8, 0.8, 0.8, 1.5, 0.4, 0.4, 1.5])
-
 with col_logo:
     if os.path.exists("logo.png.png"): st.image("logo.png.png", width=160)
     elif os.path.exists("logo.png"): st.image("logo.png", width=160)
     else: st.markdown("<h3 style='margin:0; padding:0;'>AUTOCESTAK pro</h3>", unsafe_allow_html=True)
-
 with col_nav0:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
     if st.button(t["nav_home"]): st.session_state["page"] = "Domov"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_nav1:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
     if st.button(t["nav_cestaky"]): st.session_state["page"] = "Cesťáky"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_nav2:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
     if st.button(t["nav_support"]): st.session_state["page"] = "Podpora"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_nav3:
     st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
     if st.button(t["nav_about"]): st.session_state["page"] = "O nás"; st.session_state["show_login"] = False
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_sk:
     cls = "lang-active" if st.session_state["lang"] == "SK" else "lang-btn"
     st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
     if st.button("SK", key="lang_sk"): st.session_state["lang"] = "SK"; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_en:
     cls = "lang-active" if st.session_state["lang"] == "EN" else "lang-btn"
     st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
     if st.button("EN", key="lang_en"): st.session_state["lang"] = "EN"; st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_login:
     st.markdown('<div class="login-btn">', unsafe_allow_html=True)
     if not st.session_state["authenticated"]:
@@ -166,12 +161,10 @@ if st.session_state["show_login"] and not st.session_state["authenticated"]:
 # --- OBSAH STRÁNOK ---
 
 if st.session_state["page"] == "Domov":
-    # HERO SECTION
     c1, c2 = st.columns([1.5, 1])
     with c1:
         st.markdown(f"<div class='hero-title'>{t['hero_title']}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='hero-subtitle'>{t['hero_sub']}</div>", unsafe_allow_html=True)
-        
         st.markdown(f"""
             <div class='contact-box'>
                 <div class='small-text'>{t['contact_small']}</div>
@@ -184,7 +177,6 @@ if st.session_state["page"] == "Domov":
     st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ABOUT FOUNDER SECTION (O mne)
     f1, f2 = st.columns([1, 2])
     with f1:
         if os.path.exists("profilovka.png"): st.image("profilovka.png", use_container_width=True)
@@ -195,8 +187,7 @@ if st.session_state["page"] == "Domov":
         st.markdown("<h2 style='margin-bottom: 20px;'>Automatizácia pre moderné účtovníctvo</h2>", unsafe_allow_html=True)
         st.write("""
         Našou víziou je posunúť účtovníctvo do 21. storočia. Chápeme, že pre účtovné kancelárie a podnikateľov je čas tou najcennejšou komoditou. 
-        Preto sme vytvorili **AUTOCESTAK pro** – nástroj, ktorý plne automatizuje únavnú administratívu okolo cestovných náhrad, 
-        eliminuje chybovosť pri výpočtoch a šetrí desiatky hodín vašej práce mesačne. 
+        Preto sme vytvorili **AUTOCESTAK pro** – nástroj, ktorý plne automatizuje únavnú administratívu okolo cestovných náhrad, eliminuje chybovosť pri výpočtoch a šetrí desiatky hodín vašej práce mesačne. 
         """)
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
@@ -214,7 +205,6 @@ if st.session_state["page"] == "Domov":
 
 elif st.session_state["page"] == "Cesťáky":
     if not st.session_state["authenticated"]:
-        # PREDPLATNÉ (Cenník pre neprihlásených)
         st.markdown("<br><br>", unsafe_allow_html=True)
         p1, p2, p3, p4 = st.columns([1, 2, 2, 1])
         with p2:
@@ -240,19 +230,58 @@ elif st.session_state["page"] == "Cesťáky":
             st.markdown('</div>', unsafe_allow_html=True)
     
     else:
-        # GENERÁTOR (Pre prihlásených)
         st.title(t["gen_title"])
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # NASTAVENIA ČASU A KRAJINY
+        mesiace_zoznam = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"]
+        c_krajina, c_rok, c_mes = st.columns(3)
+        with c_krajina: krajina = st.selectbox("Krajina cesty", ["Slovensko", "Nemecko", "Rakúsko", "Belgicko", "Maďarsko", "Česko", "Švédsko"])
+        with c_rok: rok = st.selectbox("Rok", [2024, 2025, 2026], index=2)
+        with c_mes: mesiac_nazov = st.selectbox("Mesiac", mesiace_zoznam)
+        
+        mesiac_int = mesiace_zoznam.index(mesiac_nazov) + 1
+        
+        # LOGIKA PRE AMORTIZÁCIU A STRAVNÉ
+        def_amort = 0.313
+        if rok < 2026:
+            if mesiac_int <= 2: def_amort = 0.265
+            elif mesiac_int <= 5: def_amort = 0.281
+            else: def_amort = 0.296
+            
+        def_stravne = 9.30
+        if krajina == "Slovensko":
+            if rok < 2026:
+                if mesiac_int <= 3: def_stravne = 8.30
+                elif mesiac_int <= 11: def_stravne = 8.80
+                else: def_stravne = 9.30
+            else:
+                def_stravne = 9.30
+        elif krajina in ["Nemecko", "Rakúsko", "Belgicko"]: def_stravne = 45.0
+        elif krajina == "Maďarsko": def_stravne = 39.0
+        elif krajina == "Česko": 
+            kurz = get_exchange_rate("CZK")
+            def_stravne = round(600 / kurz, 2)
+            st.toast(f"Stiahnutý kurz ECB: 1 EUR = {kurz} CZK")
+        elif krajina == "Švédsko":
+            kurz = get_exchange_rate("SEK")
+            def_stravne = round(455 / kurz, 2)
+            st.toast(f"Stiahnutý kurz ECB: 1 EUR = {kurz} SEK")
+
+        st.markdown("---")
+        
         col_x, col_space, col_y = st.columns([1, 0.1, 1])
         
         with col_x:
             meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
             spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
-            mesiac_nazov = st.selectbox("Mesiac", ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"])
-            
-            # --- TOTO SÚ TIE POLÍČKA PRE MIESTA ---
             start_miesta_input = st.text_input("Štartovacie miesto (oddelené čiarkou)", value="Mýtne Ludany, Levice")
             mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín, Poprad, Žilina")
+            
+            st.markdown("<br><b>Extra výdavky:</b>", unsafe_allow_html=True)
+            noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
+            vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€) (Materiál, oblečenie...)", value=0.0, step=10.0)
+            st.markdown("<div class='source-link'>ℹ️ Tieto sumy sa automaticky priradia k cestám a odrátajú z cieľovej sumy.</div>", unsafe_allow_html=True)
             
         with col_y:
             cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
@@ -261,13 +290,13 @@ elif st.session_state["page"] == "Cesťáky":
             st.markdown("<div class='source-link'>ℹ️ Údaj z technického preukazu (kombinovaná spotreba).</div>", unsafe_allow_html=True)
             
             cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-            st.markdown("<div class='source-link'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank'>🔗 Zdroj: ŠÚ SR (Mesačné ceny PHM)</a></div>", unsafe_allow_html=True)
+            st.markdown("<div class='source-link'><a href='https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk' target='_blank'>🔗 Zdroj: ŠÚ SR</a></div>", unsafe_allow_html=True)
             
-            amortizacia = st.number_input("Amortizácia (€/km)", value=0.265, format="%.3f")
-            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank'>🔗 Zdroj: Zákonná sadzba MPSVR SR</a></div>", unsafe_allow_html=True)
+            amortizacia = st.number_input("Amortizácia (€/km)", value=def_amort, format="%.3f")
+            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/' target='_blank'>🔗 Automaticky vypočítané podľa Zákona (MPSVR SR)</a></div>", unsafe_allow_html=True)
             
-            stravne_val = st.number_input("Stravné (€/deň)", value=8.30, step=0.10)
-            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank'>🔗 Zdroj: Opatrenie o stravnom</a></div>", unsafe_allow_html=True)
+            stravne_val = st.number_input("Stravné (€/deň)", value=def_stravne, step=0.10)
+            st.markdown("<div class='source-link'><a href='https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/' target='_blank'>🔗 Automatická sadzba pre zvolenú krajinu a dátum</a></div>", unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top:30px;"></div>', unsafe_allow_html=True)
         
@@ -278,25 +307,25 @@ elif st.session_state["page"] == "Cesťáky":
         if st.button("🚀 Vygenerovať Excel"):
             if not suhlas:
                 st.error("Pre vygenerovanie dokumentu musíte súhlasiť s podmienkami (zaškrtnite políčko vyššie).")
+            elif cielova_suma <= (noclazne_suma + vedlajsie_suma):
+                st.error("Cieľová suma musí byť vyššia ako súčet extra výdavkov (Nocľažné a Vedľajšie výdavky).")
             else:
                 with st.spinner('Pripravujem dáta a generujem Excel...'):
                     start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
                     mesta_list = [m.strip() for m in mesta_sk.split(',')]
                     sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
-                    mesiace_dict = {"Január": 1, "Február": 2, "Marec": 3, "Apríl": 4, "Máj": 5, "Jún": 6, "Júl": 7, "August": 8, "September": 9, "Október": 10, "November": 11, "December": 12}
-                    mes_int = mesiace_dict[mesiac_nazov]
-                    rok = 2026
                     
                     sk_holidays = holidays.Slovakia(years=rok)
-                    dni = [datetime.date(rok, mes_int, d) for d in range(1, calendar.monthrange(rok, mes_int)[1] + 1) if datetime.date(rok, mes_int, d).weekday() < 5 and datetime.date(rok, mes_int, d) not in sk_holidays]
+                    dni = [datetime.date(rok, mesiac_int, d) for d in range(1, calendar.monthrange(rok, mesiac_int)[1] + 1) if datetime.date(rok, mesiac_int, d).weekday() < 5 and datetime.date(rok, mesiac_int, d) not in sk_holidays]
                     random.shuffle(dni)
                     
+                    cista_suma_na_cesty = cielova_suma - noclazne_suma - vedlajsie_suma
                     cena_jednej_cesty = (270 * sadzba_km) + stravne_val
-                    pocet_ciest = max(1, min(len(dni), int(round(cielova_suma / cena_jednej_cesty))))
-                    celkove_km = int(round((cielova_suma - (pocet_ciest * stravne_val)) / sadzba_km))
+                    pocet_ciest = max(1, min(len(dni), int(round(cista_suma_na_cesty / cena_jednej_cesty))))
+                    celkove_km = int(round((cista_suma_na_cesty - (pocet_ciest * stravne_val)) / sadzba_km))
+                    
                     km_list = [celkove_km // pocet_ciest] * pocet_ciest
                     for i in range(celkove_km % pocet_ciest): km_list[i] += 1
-                    
                     vybrane_dni = sorted(dni[:pocet_ciest])
 
                     wb = Workbook()
@@ -322,10 +351,20 @@ elif st.session_state["page"] == "Cesťáky":
                         aktualny_ciel = random.choice(mozne_destinacie)
                         
                         cestovne = km * sadzba_km
-                        spolu = cestovne + stravne_val
                         
-                        ws.append([d.strftime("%Y-%m-%d"), aktualny_start, f"AUV ({spz})", km, "8.00", cestovne, stravne_val, "", "", spolu])
-                        ws.cell(row=current_row, column=6).number_format = '0.0000'; ws.cell(row=current_row, column=7).number_format = '0.00'; ws.cell(row=current_row, column=10).number_format = '0.0000'
+                        # Rozpustenie extra výdavkov (Nocľažné ide prvej ceste, vedľajšie poslednej)
+                        akt_noc = noclazne_suma if idx == 0 else 0.0
+                        akt_vedl = vedlajsie_suma if idx == (len(vybrane_dni) - 1) else 0.0
+                        if len(vybrane_dni) == 1: akt_vedl = vedlajsie_suma
+                        
+                        spolu = cestovne + stravne_val + akt_noc + akt_vedl
+                        
+                        ws.append([d.strftime("%Y-%m-%d"), aktualny_start, f"AUV ({spz})", km, "8.00", cestovne, stravne_val, akt_noc if akt_noc > 0 else "", akt_vedl if akt_vedl > 0 else "", spolu])
+                        ws.cell(row=current_row, column=6).number_format = '0.0000'; ws.cell(row=current_row, column=7).number_format = '0.00'
+                        if akt_noc > 0: ws.cell(row=current_row, column=8).number_format = '0.00'
+                        if akt_vedl > 0: ws.cell(row=current_row, column=9).number_format = '0.00'
+                        ws.cell(row=current_row, column=10).number_format = '0.0000'
+                        
                         ws.append(["", aktualny_ciel, "", "", "16:30:00", "", "", "", "", ""])
                         current_row += 2
 
@@ -334,15 +373,17 @@ elif st.session_state["page"] == "Cesťáky":
                     ws.cell(row=sum_row, column=1, value="Spolu").font = Font(bold=True)
                     ws.cell(row=sum_row, column=6, value=f"=SUM(F6:F{current_row-1})").number_format = '#,##0.00'
                     ws.cell(row=sum_row, column=7, value=f"=SUM(G6:G{current_row-1})").number_format = '#,##0.00'
+                    ws.cell(row=sum_row, column=8, value=f"=SUM(H6:H{current_row-1})").number_format = '#,##0.00'
+                    ws.cell(row=sum_row, column=9, value=f"=SUM(I6:I{current_row-1})").number_format = '#,##0.00'
                     ws.cell(row=sum_row, column=10, value=f"=SUM(J6:J{current_row-1})").number_format = '#,##0.00'
-                    for col in [6, 7, 10]: ws.cell(row=sum_row, column=col).font = Font(bold=True)
+                    for col in [6, 7, 8, 9, 10]: ws.cell(row=sum_row, column=col).font = Font(bold=True)
 
                     output = io.BytesIO()
                     wb.save(output)
                     output.seek(0)
                     
                     st.success("✅ Hotovo! Dokument je pripravený na stiahnutie.")
-                    st.download_button(label="📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_2026.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button(label="📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_{rok}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state["page"] == "Podpora":
@@ -351,6 +392,4 @@ elif st.session_state["page"] == "Podpora":
 
 elif st.session_state["page"] == "O nás":
     st.title("O projekte AUTOCESTAK pro")
-    st.markdown("""
-        Tento systém vyvinul **Sebastián Štuller** pre zefektívnenie procesov v spoločnosti **jmcreditplus s.r.o.**
-    """)
+    st.markdown("Tento systém vyvinul **Sebastián Štuller** pre zefektívnenie procesov v spoločnosti **jmcreditplus s.r.o.**")
