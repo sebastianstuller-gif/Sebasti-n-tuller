@@ -161,6 +161,12 @@ elif st.session_state["page"] == "Cesťáky":
         mesiac_int = mesiace_zoznam.index(mesiac_nazov) + 1
         dni_v_mesiaci = calendar.monthrange(rok, mesiac_int)[1]
         
+        # --- LOGIKA SVIATKOV A NEDIEĽ PRE VÝBER ---
+        sk_hol_obj = holidays.Slovakia(years=rok)
+        vsetky_dni_v_mesiaci = [datetime.date(rok, mesiac_int, d) for d in range(1, dni_v_mesiaci + 1)]
+        nedele_a_sviatky = [d for d in vsetky_dni_v_mesiaci if d.weekday() == 6 or d in sk_hol_obj]
+        moznosti_ned_svi = {d.strftime("%d.%m.%Y") + (" (Sviatok)" if d in sk_hol_obj else " (Nedeľa)"): d for d in nedele_a_sviatky}
+        
         # --- LOGIKA PRE AMORTIZÁCIU A STRAVNÉ ---
         def_amort = 0.313 if rok >= 2026 else (0.265 if mesiac_int <= 2 else (0.281 if mesiac_int <= 5 else 0.296))
         
@@ -179,6 +185,8 @@ elif st.session_state["page"] == "Cesťáky":
 
         st.markdown("---")
         
+        vybrane_nedele_sviatky = [] # Inicializácia premennej pre oba režimy
+        
         # --- FORMULÁRE PODĽA TYPU ---
         if "Klasické" in typ_cesty:
             st.subheader("Parametre pre Jednodňové cesty")
@@ -188,23 +196,38 @@ elif st.session_state["page"] == "Cesťáky":
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
                 start_miesta_input = st.text_input("Štartovacie miesto (oddelené čiarkou)", value="Mýtne Ludany, Levice")
                 mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín")
+                
                 praca_sobota = st.checkbox("Pracuje sa aj v Sobotu? (Generovať cesty na soboty)", value=False)
+                praca_nedela = st.checkbox("Pracuje sa aj v Nedeľu / Sviatok? (Vybrať konkrétne dni)", value=False, key="ned1")
+                if praca_nedela:
+                    if moznosti_ned_svi:
+                        vyber = st.multiselect("Vyberte konkrétne nedele/sviatky, kedy sa pracovalo:", options=list(moznosti_ned_svi.keys()), key="ms1")
+                        vybrane_nedele_sviatky = [moznosti_ned_svi[v] for v in vyber]
+                    else:
+                        st.info("V tomto mesiaci nie sú žiadne sviatky ani nedele (čo je technicky nemožné, ale pre istotu).")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
                 noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
                 vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€)", value=0.0, step=10.0)
                 
             with col_y:
                 cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
                 spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                
                 cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-                st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM</a></div>', unsafe_allow_html=True)
+                st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (ŠÚ SR)</a></div>', unsafe_allow_html=True)
+                
                 amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
+                st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
+                
                 if kurz_mena != "EUR":
                     kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
                     stravne_eur_calc = round(stravne_local / kurz_input, 2)
                     stravne_val = st.number_input(f"Stravné v €", value=float(stravne_eur_calc), step=0.10)
+                    st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
                 else:
                     stravne_val = st.number_input("Stravné (€/deň)", value=float(def_stravne_eur), step=0.10)
-                    st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné</a></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné (Slov-lex)</a></div>', unsafe_allow_html=True)
 
         else: # TURNUS
             st.subheader("Parametre pre Turnus / Zahraničnú montáž")
@@ -222,6 +245,11 @@ elif st.session_state["page"] == "Cesťáky":
                     end_turnus = datetime.date(rok, mesiac_int, dni_v_mesiaci)
                     
                 praca_sobota = st.checkbox("Pracuje a dochádza z ubytovania na stavbu aj v Sobotu?", value=True)
+                praca_nedela = st.checkbox("Pracuje a dochádza na stavbu aj v Nedeľu / Sviatok? (Vybrať konkrétne dni)", value=False, key="ned2")
+                if praca_nedela:
+                    if moznosti_ned_svi:
+                        vyber = st.multiselect("Vyberte konkrétne nedele/sviatky, kedy sa na turnuse pracovalo:", options=list(moznosti_ned_svi.keys()), key="ms2")
+                        vybrane_nedele_sviatky = [moznosti_ned_svi[v] for v in vyber]
                 
             with col_y:
                 miesto_domov = st.text_input("Miesto bydliska / Štart", value="Žemberovce")
@@ -232,14 +260,21 @@ elif st.session_state["page"] == "Cesťáky":
                 km_denne = st.number_input("Denné dochádzanie do práce (Ubytovanie -> Stavba -> Ubytovanie) v km", value=15)
                 
                 spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                
                 cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (ŠÚ SR)</a></div>', unsafe_allow_html=True)
+                
                 amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
+                st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
+                
                 if kurz_mena != "EUR":
                     kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
                     stravne_eur_calc = round(stravne_local / kurz_input, 2)
                     stravne_val = st.number_input(f"Stravné v € na deň", value=float(stravne_eur_calc), step=0.10)
+                    st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
                 else:
                     stravne_val = st.number_input("Stravné v € na deň", value=float(def_stravne_eur), step=0.10)
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné (Slov-lex)</a></div>', unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top:20px;"></div>', unsafe_allow_html=True)
         suhlas = st.checkbox("Potvrdzujem, že zadané údaje sú pravdivé.")
@@ -251,7 +286,6 @@ elif st.session_state["page"] == "Cesťáky":
             else:
                 with st.spinner('Pripravujem dokument...'):
                     sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
-                    sk_holidays = holidays.Slovakia(years=rok)
                     
                     wb = Workbook()
                     ws = wb.active
@@ -280,8 +314,13 @@ elif st.session_state["page"] == "Cesťáky":
                     
                     # --- LOGIKA: JEDNODŇOVÉ CESTY ---
                     if "Klasické" in typ_cesty:
-                        max_weekday = 5 if praca_sobota else 4 # 4=Piatok, 5=Sobota
-                        dni = [datetime.date(rok, mesiac_int, d) for d in range(1, dni_v_mesiaci + 1) if datetime.date(rok, mesiac_int, d).weekday() <= max_weekday and datetime.date(rok, mesiac_int, d) not in sk_holidays]
+                        # Logika výberu dní: štandardné pracovné dni + vybrané nedele/sviatky
+                        dni = []
+                        for d in vsetky_dni_v_mesiaci:
+                            is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
+                            if is_standard_workday or (d in vybrane_nedele_sviatky):
+                                dni.append(d)
+                        
                         random.shuffle(dni)
                         
                         start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
@@ -318,13 +357,14 @@ elif st.session_state["page"] == "Cesťáky":
                         for day in range(1, dni_v_mesiaci + 1):
                             d = datetime.date(rok, mesiac_int, day)
                             
-                            # Ak sme mimo zvoleného turnusu v danom mesiaci, preskoč deň
                             if d < start_turnus or (ma_navrat and d > end_turnus):
                                 continue
                             
                             is_start = (d == start_turnus)
                             is_end = (ma_navrat and d == end_turnus)
-                            is_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_holidays
+                            # Pracovný deň je štandardný pracovný deň ALEBO špecificky vybraná nedeľa/sviatok
+                            is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
+                            is_workday = is_standard_workday or (d in vybrane_nedele_sviatky)
                             
                             km = 0
                             trasa_od = ""
@@ -351,8 +391,7 @@ elif st.session_state["page"] == "Cesťáky":
                                         ws.cell(row=curr+r_off, column=c_idx).border = thin_border; ws.cell(row=curr+r_off, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                                 curr += 2
                             else:
-                                # Deň voľna na turnuse (len stravné)
-                                ws.append([d.strftime("%d.%m.%Y"), "Deň voľna (Zahraničie)", "", 0, "-", 0, stravne_val, "", "", stravne_val])
+                                ws.append([d.strftime("%d.%m.%Y"), "Deň voľna (Ubytovanie)", "", 0, "-", 0, stravne_val, "", "", stravne_val])
                                 for c_idx in range(1, 11):
                                     ws.cell(row=curr, column=c_idx).border = thin_border; ws.cell(row=curr, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                                 curr += 1
@@ -377,7 +416,7 @@ elif st.session_state["page"] == "Cesťáky":
                     output.seek(0)
                     
                     st.success("✅ Profesionálny dokument vygenerovaný.")
-                    st.download_button("📥 Stiahnuť Excel", output, f"Cestak_{meno.replace(' ', '_')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button("📥 Stiahnuť Excel", output, f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state["page"] == "Podpora":
