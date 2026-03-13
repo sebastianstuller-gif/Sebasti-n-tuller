@@ -23,8 +23,7 @@ def get_exchange_rate(currency):
             return rates[currency]
     except Exception as e:
         pass
-    # Záložné kurzy
-    fallbacks = {"CZK": 25.3, "SEK": 11.2}
+    fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
 
 # --- JAZYKOVÝ SLOVNÍK ---
@@ -86,9 +85,10 @@ st.markdown("""
     label, label p { color: #333333 !important; font-weight: 600 !important; font-size: 14px !important; margin-bottom: 4px !important; }
     .gen-btn > button { background-color: #111111 !important; color: #ffffff !important; width: 100%; height: 3.5em; border-radius: 8px !important; font-weight: 600 !important; border: none !important; transition: 0.2s; }
     .gen-btn > button:hover { background-color: #333333 !important; }
-    .source-link { font-size: 12px; margin-top: -10px; margin-bottom: 15px; color: #666;}
-    .source-link a { color: #666666 !important; text-decoration: none; font-weight: 500;}
-    .source-link a:hover { color: #111111 !important; text-decoration: underline;}
+    
+    /* Štýl pre linky na overenie */
+    .verify-link { font-size: 12px; margin-top: -10px; margin-bottom: 15px; color: #111; font-weight: 500; }
+    .verify-link a { color: #0066cc !important; text-decoration: underline !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -233,7 +233,7 @@ elif st.session_state["page"] == "Cesťáky":
         st.title(t["gen_title"])
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- NASTAVENIA ČASU A KRAJINY ---
+        # NASTAVENIA ČASU A KRAJINY
         mesiace_zoznam = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"]
         c_krajina, c_rok, c_mes = st.columns(3)
         with c_krajina: krajina = st.selectbox("Krajina cesty", ["Slovensko", "Nemecko", "Rakúsko", "Belgicko", "Maďarsko", "Česko", "Švédsko"])
@@ -242,38 +242,31 @@ elif st.session_state["page"] == "Cesťáky":
         
         mesiac_int = mesiace_zoznam.index(mesiac_nazov) + 1
         
-        # --- LOGIKA PRE AMORTIZÁCIU A STRAVNÉ ---
-        # 1. Amortizácia (podľa presných pravidiel)
+        # LOGIKA PRE AMORTIZÁCIU A STRAVNÉ
         def_amort = 0.313
         if rok < 2026:
             if mesiac_int <= 2: def_amort = 0.265
             elif mesiac_int <= 5: def_amort = 0.281
             else: def_amort = 0.296
             
-        # 2. Stravné (Slovensko a Zahraničie)
         kurz_mena = "EUR"
         def_kurz = 1.0
         stravne_local = 0.0
         
         if krajina == "Slovensko":
-            if rok >= 2026:
-                def_stravne_eur = 9.30
+            if rok >= 2026: def_stravne_eur = 9.30
             else:
                 if mesiac_int <= 3: def_stravne_eur = 8.30
                 elif mesiac_int <= 11: def_stravne_eur = 8.80
                 else: def_stravne_eur = 9.30
-        elif krajina in ["Nemecko", "Rakúsko", "Belgicko"]:
-            def_stravne_eur = 45.0
-        elif krajina == "Maďarsko":
-            def_stravne_eur = 39.0
+        elif krajina in ["Nemecko", "Rakúsko", "Belgicko"]: def_stravne_eur = 45.0
+        elif krajina == "Maďarsko": def_stravne_eur = 39.0
         elif krajina == "Česko": 
-            stravne_local = 600.0
-            kurz_mena = "CZK"
+            stravne_local = 600.0; kurz_mena = "CZK"
             def_kurz = get_exchange_rate("CZK")
             def_stravne_eur = round(stravne_local / def_kurz, 2)
         elif krajina == "Švédsko":
-            stravne_local = 455.0
-            kurz_mena = "SEK"
+            stravne_local = 455.0; kurz_mena = "SEK"
             def_kurz = get_exchange_rate("SEK")
             def_stravne_eur = round(stravne_local / def_kurz, 2)
 
@@ -289,8 +282,7 @@ elif st.session_state["page"] == "Cesťáky":
             
             st.markdown("<br><b>Extra výdavky:</b>", unsafe_allow_html=True)
             noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
-            vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€) (Materiál, oblečenie...)", value=0.0, step=10.0)
-            st.markdown("<div class='source-link'>ℹ️ Tieto sumy sa automaticky priradia k cestám a odrátajú z cieľovej sumy.</div>", unsafe_allow_html=True)
+            vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€)", value=0.0, step=10.0)
             
         with col_y:
             cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
@@ -298,34 +290,34 @@ elif st.session_state["page"] == "Cesťáky":
             spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
             
             cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+            # LINK NA PHM (ŠÚ SR)
+            st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (Štatistický úrad SR)</a></div>', unsafe_allow_html=True)
             
-            # Automaticky dosadená amortizácia
             amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
-            st.markdown("<div class='source-link'>🔗 Hodnota bola automaticky upravená podľa vybraného mesiaca a roku.</div>", unsafe_allow_html=True)
+            # LINK NA AMORTIZÁCIU (Slov-lex)
+            st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
             
-            # Logika pre Kurz a Stravné
             if kurz_mena != "EUR":
                 kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
+                # LINK NA KURZ (ECB)
+                st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
                 stravne_eur_calc = round(stravne_local / kurz_input, 2)
-                stravne_val = st.number_input(f"Stravné v € ({stravne_local} {kurz_mena} prepočítané kurzom)", value=float(stravne_eur_calc), step=0.10)
-                st.markdown(f"<div class='source-link'>🔗 Kurz z ECB. Môžete ho manuálne upraviť.</div>", unsafe_allow_html=True)
+                stravne_val = st.number_input(f"Stravné v € ({stravne_local} {kurz_mena})", value=float(stravne_eur_calc), step=0.10)
             else:
                 stravne_val = st.number_input("Stravné (€/deň)", value=float(def_stravne_eur), step=0.10)
-                st.markdown("<div class='source-link'>🔗 Hodnota bola automaticky upravená podľa krajiny a obdobia.</div>", unsafe_allow_html=True)
+                # LINK NA STRAVNÉ (Slov-lex)
+                st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné SR (Slov-lex)</a></div>', unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top:30px;"></div>', unsafe_allow_html=True)
         
-        # PRÁVNA OCHRANA - ZAŠKRTÁVACIE POLÍČKO
-        suhlas = st.checkbox("Potvrdzujem, že zadané údaje sú pravdivé a vygenerovaný dokument slúži výhradne na rekonštrukciu skutočne vykonaných pracovných ciest. Som si vedomý právnej zodpovednosti voči daňovému úradu.")
+        suhlas = st.checkbox("Potvrdzujem, že zadané údaje sú pravdivé. Som si vedomý právnej zodpovednosti.")
         
         st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
         if st.button("🚀 Vygenerovať Excel"):
             if not suhlas:
-                st.error("Pre vygenerovanie dokumentu musíte súhlasiť s podmienkami (zaškrtnite políčko vyššie).")
-            elif cielova_suma <= (noclazne_suma + vedlajsie_suma):
-                st.error("Cieľová suma musí byť vyššia ako súčet extra výdavkov (Nocľažné a Vedľajšie výdavky).")
+                st.error("Musíte súhlasiť s podmienkami.")
             else:
-                with st.spinner('Pripravujem dáta a generujem Excel...'):
+                with st.spinner('Generujem...'):
                     start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
                     mesta_list = [m.strip() for m in mesta_sk.split(',')]
                     sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
@@ -338,7 +330,6 @@ elif st.session_state["page"] == "Cesťáky":
                     cena_jednej_cesty = (270 * sadzba_km) + stravne_val
                     pocet_ciest = max(1, min(len(dni), int(round(cista_suma_na_cesty / cena_jednej_cesty))))
                     celkove_km = int(round((cista_suma_na_cesty - (pocet_ciest * stravne_val)) / sadzba_km))
-                    
                     km_list = [celkove_km // pocet_ciest] * pocet_ciest
                     for i in range(celkove_km % pocet_ciest): km_list[i] += 1
                     vybrane_dni = sorted(dni[:pocet_ciest])
@@ -351,60 +342,36 @@ elif st.session_state["page"] == "Cesťáky":
 
                     ws['A1'] = f"VYÚČTOVANIE PRACOVNEJ CESTY - {meno}"
                     ws['A1'].font = Font(bold=True)
-                    ws.append(["Dátum", "ODCHOD-PRÍCHOD", "Použitý dopravný prostriedok", "Vzdialenosť v km", "Začiatok a koniec výkonu", "Cestovné", "Stravné", "Nocľažné", "Nutné vedľajšie výdavky", "Spolu"])
+                    ws.append(["Dátum", "ODCHOD-PRÍCHOD", "Dopravný prostriedok", "Km", "Trvanie", "Cestovné", "Stravné", "Nocľažné", "Vedľajšie", "Spolu"])
                     for cell in ws[2]: cell.font = Font(bold=True); cell.alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
                     ws.append([""] * 10); ws.append([""] * 10)
                     ws.append(["", "", "", "", "", "EUR", "EUR", "EUR", "EUR", "EUR"])
-                    for cell in ws[5]: cell.alignment = Alignment(horizontal="right")
 
                     current_row = 6
                     for idx, d in enumerate(vybrane_dni):
                         km = km_list[idx]
-                        aktualny_start = random.choice(start_mesta_list)
-                        mozne_destinacie = [m for m in mesta_list if m != aktualny_start]
-                        if not mozne_destinacie: mozne_destinacie = mesta_list
-                        aktualny_ciel = random.choice(mozne_destinacie)
-                        
-                        cestovne = km * sadzba_km
-                        
-                        # Rozpustenie extra výdavkov (Nocľažné ide prvej ceste, vedľajšie poslednej)
                         akt_noc = noclazne_suma if idx == 0 else 0.0
                         akt_vedl = vedlajsie_suma if idx == (len(vybrane_dni) - 1) else 0.0
-                        if len(vybrane_dni) == 1: akt_vedl = vedlajsie_suma
-                        
+                        cestovne = km * sadzba_km
                         spolu = cestovne + stravne_val + akt_noc + akt_vedl
                         
-                        ws.append([d.strftime("%Y-%m-%d"), aktualny_start, f"AUV ({spz})", km, "8.00", cestovne, stravne_val, akt_noc if akt_noc > 0 else "", akt_vedl if akt_vedl > 0 else "", spolu])
-                        ws.cell(row=current_row, column=6).number_format = '0.0000'; ws.cell(row=current_row, column=7).number_format = '0.00'
-                        if akt_noc > 0: ws.cell(row=current_row, column=8).number_format = '0.00'
-                        if akt_vedl > 0: ws.cell(row=current_row, column=9).number_format = '0.00'
+                        ws.append([d.strftime("%Y-%m-%d"), random.choice(start_mesta_list), f"AUV ({spz})", km, "8:00", cestovne, stravne_val, akt_noc if akt_noc > 0 else "", akt_vedl if akt_vedl > 0 else "", spolu])
+                        ws.cell(row=current_row, column=6).number_format = '0.0000'
                         ws.cell(row=current_row, column=10).number_format = '0.0000'
-                        
-                        ws.append(["", aktualny_ciel, "", "", "16:30:00", "", "", "", "", ""])
+                        ws.append(["", random.choice(mesta_list), "", "", "16:30", "", "", "", "", ""])
                         current_row += 2
-
-                    ws.append([""] * 10) 
-                    sum_row = current_row + 1
-                    ws.cell(row=sum_row, column=1, value="Spolu").font = Font(bold=True)
-                    ws.cell(row=sum_row, column=6, value=f"=SUM(F6:F{current_row-1})").number_format = '#,##0.00'
-                    ws.cell(row=sum_row, column=7, value=f"=SUM(G6:G{current_row-1})").number_format = '#,##0.00'
-                    ws.cell(row=sum_row, column=8, value=f"=SUM(H6:H{current_row-1})").number_format = '#,##0.00'
-                    ws.cell(row=sum_row, column=9, value=f"=SUM(I6:I{current_row-1})").number_format = '#,##0.00'
-                    ws.cell(row=sum_row, column=10, value=f"=SUM(J6:J{current_row-1})").number_format = '#,##0.00'
-                    for col in [6, 7, 8, 9, 10]: ws.cell(row=sum_row, column=col).font = Font(bold=True)
 
                     output = io.BytesIO()
                     wb.save(output)
                     output.seek(0)
-                    
-                    st.success("✅ Hotovo! Dokument je pripravený na stiahnutie.")
-                    st.download_button(label="📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{meno.replace(' ', '_')}_{mesiac_nazov}_{rok}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.success("✅ Dokument vygenerovaný.")
+                    st.download_button(label="📥 Stiahnuť Excel", data=output, file_name=f"Cestak_{mesiac_nazov}_{rok}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state["page"] == "Podpora":
     st.title("Podpora")
-    st.write("V prípade problémov s generovaním alebo nastavením sadzieb nás neváhajte kontaktovať na čísle **+421 911 781 362**.")
+    st.write("Kontakt: **+421 911 781 362**")
 
 elif st.session_state["page"] == "O nás":
-    st.title("O projekte AUTOCESTAK pro")
-    st.markdown("Tento systém vyvinul **Sebastián Štuller** pre zefektívnenie procesov v spoločnosti **jmcreditplus s.r.o.**")
+    st.title("O projekte")
+    st.write("Vyvinul Sebastián Štuller, jmcreditplus s.r.o.")
