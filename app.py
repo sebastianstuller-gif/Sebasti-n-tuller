@@ -65,6 +65,15 @@ st.markdown("""
     .nav-btn > button:hover { color: #555555 !important; }
     .login-btn > button { background-color: #f4f4f5 !important; color: #111 !important; border-radius: 20px !important; font-weight: 600; border: none !important; padding: 0 20px !important; transition: 0.2s; }
     .login-btn > button:hover { background-color: #e4e4e7 !important; }
+    .black-box { background-color: #111111; color: #ffffff; padding: 40px; border-radius: 12px; text-align: center; }
+    .black-box h4 { color: #aaaaaa; font-weight: 400; margin-bottom: 10px; }
+    .black-box h2 { color: #ffffff; font-size: 38px; margin: 10px 0 30px 0; font-weight: 800; }
+    .buy-btn > button { background-color: #ffffff !important; color: #111111 !important; border-radius: 6px !important; font-weight: 600 !important; border: none !important; width: 100%; height: 3em; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s; }
+    .buy-btn > button:hover { background-color: #f4f4f5 !important; }
+    .contact-box { background-color: #f8f9fa; border: 1px solid #eeeeee; padding: 30px; border-radius: 16px; margin-top: 40px; display: inline-block; min-width: 350px; }
+    .contact-box .small-text { color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
+    .contact-box h3 { font-size: 24px; font-weight: 800; margin: 0 0 5px 0; }
+    .contact-box .email { color: #555555; font-size: 15px; margin: 0; }
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
     .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] { background-color: #f4f4f5 !important; color: #111111 !important; border: 1px solid #e4e4e7 !important; border-radius: 6px !important; }
@@ -133,15 +142,76 @@ if st.session_state["show_login"] and not st.session_state["authenticated"]:
 
 # --- OBSAH STRÁNOK ---
 if st.session_state["page"] == "Domov":
+    # HERO SECTION (Vrátený kontaktný box)
     c1, c2 = st.columns([1.5, 1])
     with c1:
         st.markdown(f"<div class='hero-title'>{t['hero_title']}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='hero-subtitle'>{t['hero_sub']}</div>", unsafe_allow_html=True)
-        st.write("Profesionálny automatizačný nástroj pre účtovníctvo.")
+        st.markdown(f"""
+            <div class='contact-box'>
+                <div class='small-text'>{t['contact_small']}</div>
+                <h3>📞 +421 911 781 362</h3>
+                <p class='email'>✉️ sebastian.stuller@jmcredit.sk</p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ABOUT FOUNDER SECTION (Vrátená fotka a text)
+    f1, f2 = st.columns([1, 2])
+    with f1:
+        if os.path.exists("profilovka.png"): st.image("profilovka.png", use_container_width=True)
+        elif os.path.exists("profilovka.jpg"): st.image("profilovka.jpg", use_container_width=True)
+        else: st.info("Nahrajte svoju fotku na GitHub s názvom 'profilovka.jpg'")
+            
+    with f2:
+        st.markdown("<h2 style='margin-bottom: 20px;'>Automatizácia pre moderné účtovníctvo</h2>", unsafe_allow_html=True)
+        st.write("""
+        Našou víziou je posunúť účtovníctvo do 21. storočia. Chápeme, že pre účtovné kancelárie a podnikateľov je čas tou najcennejšou komoditou. 
+        Preto sme vytvorili **AUTOCESTAK pro** – nástroj, ktorý plne automatizuje únavnú administratívu okolo cestovných náhrad, eliminuje chybovosť pri výpočtoch a šetrí desiatky hodín vašej práce mesačne. 
+        """)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style='background-color: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #111;'>
+            <h4 style='margin-top: 0;'>Kontakt & Fakturačné údaje</h4>
+            <b>Meno:</b> Sebastián Štuller<br>
+            <b>Spoločnosť:</b> jmcreditplus s.r.o.<br>
+            <b>Adresa:</b> Obchodný dom Leo, Ul. Ľ. Štúra 7101/1A, 934 01 Levice<br>
+            <b>IČO:</b> 36 848 549<br>
+            <b>IČ DPH:</b> SK 2022477479<br>
+            <b>Mobil:</b> +421 911 781 362<br>
+            <b>E-mail:</b> sebastian.stuller@jmcredit.sk
+        </div>
+        """, unsafe_allow_html=True)
 
 elif st.session_state["page"] == "Cesťáky":
     if not st.session_state["authenticated"]:
-        st.info("Pre prístup do generátora sa prosím prihláste (Tlačidlo vpravo hore).")
+        # PREDPLATNÉ BOX
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        p1, p2, p3, p4 = st.columns([1, 2, 2, 1])
+        with p2:
+            st.markdown(f"""
+                <div class="black-box">
+                    <h4>{t['plan_mo']}</h4>
+                    <h2>9,99 €</h2>
+                </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<div class="buy-btn" style="margin-top:-20px; position:relative; z-index:10; padding:0 40px;">', unsafe_allow_html=True)
+            if st.button(t["btn_buy"], key="b1"): st.info("Platobná brána sa pripravuje.")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with p3:
+            st.markdown(f"""
+                <div class="black-box">
+                    <h4>{t['plan_yr']}</h4>
+                    <h2>100 €</h2>
+                </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<div class="buy-btn" style="margin-top:-20px; position:relative; z-index:10; padding:0 40px;">', unsafe_allow_html=True)
+            if st.button(t["btn_buy"] + " ", key="b2"): st.info("Platobná brána sa pripravuje.")
+            st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.title("Generátor cesťákov")
         
@@ -185,7 +255,7 @@ elif st.session_state["page"] == "Cesťáky":
 
         st.markdown("---")
         
-        vybrane_nedele_sviatky = [] # Inicializácia premennej pre oba režimy
+        vybrane_nedele_sviatky = [] 
         
         # --- FORMULÁRE PODĽA TYPU ---
         if "Klasické" in typ_cesty:
@@ -204,7 +274,7 @@ elif st.session_state["page"] == "Cesťáky":
                         vyber = st.multiselect("Vyberte konkrétne nedele/sviatky, kedy sa pracovalo:", options=list(moznosti_ned_svi.keys()), key="ms1")
                         vybrane_nedele_sviatky = [moznosti_ned_svi[v] for v in vyber]
                     else:
-                        st.info("V tomto mesiaci nie sú žiadne sviatky ani nedele (čo je technicky nemožné, ale pre istotu).")
+                        st.info("V tomto mesiaci nie sú žiadne sviatky ani nedele.")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
@@ -291,7 +361,6 @@ elif st.session_state["page"] == "Cesťáky":
                     ws = wb.active
                     ws.title = f"Vyúčtovanie_{mesiac_nazov}_{rok}"
                     
-                    # HLAVIČKA A ŠÍRKY (Rovnaké pre oba režimy)
                     widths = [14, 30, 20, 10, 15, 12, 12, 12, 12, 14]
                     for i, w in enumerate(widths): ws.column_dimensions[chr(65+i)].width = w
 
@@ -314,7 +383,6 @@ elif st.session_state["page"] == "Cesťáky":
                     
                     # --- LOGIKA: JEDNODŇOVÉ CESTY ---
                     if "Klasické" in typ_cesty:
-                        # Logika výberu dní: štandardné pracovné dni + vybrané nedele/sviatky
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
                             is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
@@ -322,7 +390,6 @@ elif st.session_state["page"] == "Cesťáky":
                                 dni.append(d)
                         
                         random.shuffle(dni)
-                        
                         start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
                         mesta_list = [m.strip() for m in mesta_sk.split(',')]
                         
@@ -362,7 +429,6 @@ elif st.session_state["page"] == "Cesťáky":
                             
                             is_start = (d == start_turnus)
                             is_end = (ma_navrat and d == end_turnus)
-                            # Pracovný deň je štandardný pracovný deň ALEBO špecificky vybraná nedeľa/sviatok
                             is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
                             is_workday = is_standard_workday or (d in vybrane_nedele_sviatky)
                             
@@ -421,7 +487,23 @@ elif st.session_state["page"] == "Cesťáky":
 
 elif st.session_state["page"] == "Podpora":
     st.title("Podpora")
-    st.write("📞 +421 911 781 362")
+    st.write("V prípade akýchkoľvek problémov s aplikáciou, úpravy sadzieb alebo technickej podpory nás prosím kontaktujte na:")
+    st.markdown("""
+    * **Telefón:** +421 911 781 362
+    * **E-mail:** sebastian.stuller@jmcredit.sk
+    """)
+
 elif st.session_state["page"] == "O nás":
     st.title("O projekte AUTOCESTAK pro")
-    st.markdown("Vyvinul **Sebastián Štuller**.")
+    st.write("""
+    **AUTOCESTAK pro** je moderný, plne automatizovaný nástroj vytvorený pre účtovníkov, ekonómov a majiteľov firiem. 
+    Našim cieľom je zbaviť vás zbytočnej a zdĺhavej administratívy spojenej s ručným nahadzovaním a prepočítavaním pracovných ciest.
+    """)
+    st.markdown("""
+    ### Čo prinášame:
+    * **Presnosť:** Všetky sadzby (amortizácia, stravné) sú priamo viazané na legislatívu a automaticky sa prispôsobujú obdobiu.
+    * **Zahraničné meny:** Live kurzy priamo z Európskej centrálnej banky.
+    * **Rýchlosť:** Generovanie profesionálnych, naformátovaných Excel dokumentov jedným kliknutím.
+    
+    Tento systém vyvinul **Sebastián Štuller** pre zefektívnenie účtovných procesov a prispôsobenie moderným štandardom 21. storočia.
+    """)
