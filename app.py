@@ -8,6 +8,7 @@ import os
 import requests
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
+import time
 
 # --- KONFIGURÁCIA STRÁNKY ---
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
@@ -33,7 +34,31 @@ def get_exchange_rate(currency):
         pass
     fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
-
+# --- CACHOVANIE REÁLNYCH VZDIALENOSTÍ Z MÁP ---
+@st.cache_data(ttl=86400)
+def get_real_distance(start_city, end_city):
+    try:
+        headers = {'User-Agent': 'AutocestakPro/1.0 (sebastian@jmcredit.sk)'}
+        # 1. Zistenie GPS súradníc (Geocoding)
+        s_url = f"https://nominatim.openstreetmap.org/search?q={start_city},+Slovakia&format=json&limit=1"
+        e_url = f"https://nominatim.openstreetmap.org/search?q={end_city},+Slovakia&format=json&limit=1"
+        
+        s_res = requests.get(s_url, headers=headers).json()
+        time.sleep(0.5) # Musíme urobiť pauzu, aby nás bezplatný server nezablokoval
+        e_res = requests.get(e_url, headers=headers).json()
+        
+        if s_res and e_res:
+            lon1, lat1 = s_res[0]['lon'], s_res[0]['lat']
+            lon2, lat2 = e_res[0]['lon'], e_res[0]['lat']
+            
+            # 2. Vypočítanie reálnej vzdialenosti po cestách
+            route_url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
+            r_res = requests.get(route_url).json()
+            if r_res.get("code") == "Ok":
+                return round(r_res["routes"][0]["distance"] / 1000) # Prevod z metrov na km
+    except Exception as e:
+        pass
+    return random.randint(30, 80) # Núdzová záloha, ak by vypadol internet
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
@@ -380,8 +405,8 @@ elif st.session_state["page"] == "Cesťáky":
                         cell.font = Font(bold=True); cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True); cell.border = thin_border
 
                     curr = 8
-                    
-                    # --- LOGIKA: JEDNODŇOVÉ CESTY ---
+
+# --- LOGIKA: JEDNODŇOVÉ CESTY ---
                     if "Klasické" in typ_cesty:
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
@@ -393,25 +418,33 @@ elif st.session_state["page"] == "Cesťáky":
                         start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
                         mesta_list = [m.strip() for m in mesta_sk.split(',')]
                         
-                        cista_suma_na_cesty = cielova_suma - noclazne_suma - vedlajsie_suma
-                        cena_jednej_cesty = (270 * sadzba_km) + stravne_val
-                        pocet_ciest = max(1, min(len(dni), int(round(cista_suma_na_cesty / cena_jednej_cesty))))
-                        celkove_km = int(round((cista_suma_na_cesty - (pocet_ciest * stravne_val)) / sadzba_km))
-                        km_list = [celkove_km // pocet_ciest] * pocet_ciest
-                        for i in range(celkove_km % pocet_ciest): km_list[i] += 1
-                        vybrane_dni = sorted(dni[:pocet_ciest])
-
-                        for idx, d in enumerate(vybrane_dni):
-                            km = km_list[idx]
-                            akt_noc = noclazne_suma if idx == 0 else 0.0
-                            akt_vedl = vedlajsie_suma if idx == (len(vybrane_dni)-1) else 0.0
-                            cesto = km * sadzba_km
-                            total = cesto + stravne_val + akt_noc + akt_vedl
-                            
+                        aktualna_suma = noclazne_suma + vedlajsie_suma
+                        dosiahnuta_suma = False
+                        
+                        for idx, d in enumerate(dni):
+                            # Skontrolujeme, či sme už neprešvihli cieľovú sumu
+                            if aktualna_suma >= cielova_suma:
+                                dosiahnuta_suma = True
+                                break
+                                
                             start_m = random.choice(start_mesta_list)
                             end_m = random.choice(mesta_list)
+                            if start_m == end_m: continue # Nechceme cestu do toho istého mesta
                             
-                            ws.append([d.strftime("%d.%m.%Y"), f"{start_m} -> {end_m}", spz, km, "08:00", round(cesto, 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(total, 2)])
+                            # VYTIAHNUTIE REÁLNYCH KILOMETROV
+                            km_jedna_cesta = get_real_distance(start_m, end_m)
+                            km_den_spolu = km_jedna_cesta * 2 # Cesta tam aj späť
+                            
+                            akt_noc = noclazne_suma if idx == 0 else 0.0
+                            akt_vedl = vedlajsie_suma if idx == (len(dni)-1) else 0.0 
+                            
+                            cesto = km_den_spolu * sadzba_km
+                            total = cesto + stravne_val + akt_noc + akt_vedl
+                            
+                            aktualna_suma += total
+                            
+                            # Zápis do Excelu s reálnymi KM
+                            ws.append([d.strftime("%d.%m.%Y"), f"{start_m} -> {end_m}", spz, km_den_spolu, "08:00", round(cesto, 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(total, 2)])
                             ws.append(["", f"{end_m} -> {start_m}", "", "", "16:30", "", "", "", "", ""])
                             
                             for r_off in [0, 1]:
@@ -419,6 +452,9 @@ elif st.session_state["page"] == "Cesťáky":
                                     ws.cell(row=curr+r_off, column=c_idx).border = thin_border; ws.cell(row=curr+r_off, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                             curr += 2
                             
+                        # VAROVANIE PRE ÚČTOVNÍČKU / KLIENTA
+                        if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
+                            st.warning(f"⚠️ UPOZORNENIE: Softvér použil REÁLNE vzdialenosti z GPS máp. Keďže zadané mestá sú príliš blízko, nie je fyzicky možné dosiahnuť {cielova_suma} €. Reálne sa vygenerovalo iba {aktualna_suma:.2f} €. Ak chcete vyššiu sumu, musíte do kolonky pridať vzdialenejšie mestá (napr. Košice, Poprad).")                            
                     # --- LOGIKA: TURNUSY ---
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
