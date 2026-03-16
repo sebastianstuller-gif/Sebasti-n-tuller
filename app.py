@@ -307,7 +307,7 @@ elif st.session_state["page"] == "Cesťáky":
                 amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
                 st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
                 
-                # --- NOVÁ INTELIGENTNÁ KALKULAČKA STRAVNÉHO ---
+              # --- INTELIGENTNÁ KALKULAČKA STRAVNÉHO (PODĽA ZÁKONA) ---
                 if krajina != "Slovensko":
                     sk_zaklad = 9.30 if rok >= 2026 else (8.30 if mesiac_int <= 3 else (8.80 if mesiac_int <= 11 else 9.30))
                     
@@ -318,18 +318,33 @@ elif st.session_state["page"] == "Cesťáky":
                     else:
                         zaklad_zahranicie = def_stravne_eur
                         
-                    st.markdown("<br><b>🇪🇺 Prechod hraníc (Kombinované stravné):</b>", unsafe_allow_html=True)
-                    st.info("Podľa zákona sa pri prechode hraníc stravné kráti podľa odpracovaných hodín v SR a v zahraničí.")
+                    st.markdown("<br><b>🇪🇺 Zákonné krátenie stravného (Prechod hraníc):</b>", unsafe_allow_html=True)
                     
-                    stravne_sk_cast = st.number_input("Slovenská časť stravného (€)", value=float(sk_zaklad / 2), step=0.10)
-                    stravne_zah_cast = st.number_input("Zahraničná časť stravného (€)", value=float(zaklad_zahranicie / 2), step=0.10)
+                    # Automatický výpočet podľa časových pásiem (z obrázkov a zákonov)
+                    cas_zahranicie = st.selectbox("Čas strávený v zahraničí (podľa Min. práce):", 
+                                                  ["do 6 hodín (25 % zo základnej sadzby)", 
+                                                   "nad 6 až do 12 hodín (50 % zo základnej sadzby)", 
+                                                   "nad 12 hodín (100 % zo základnej sadzby)"], index=1)
+                    
+                    if "do 6" in cas_zahranicie:
+                        zah_vypocet = zaklad_zahranicie * 0.25
+                    elif "do 12" in cas_zahranicie:
+                        zah_vypocet = zaklad_zahranicie * 0.50
+                    else:
+                        zah_vypocet = zaklad_zahranicie
+                        
+                    stravne_zah_cast = st.number_input("Zahraničná časť stravného (€)", value=float(zah_vypocet), step=0.10)
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.employment.gov.sk/sk/praca-zamestnanost/vztah-zamestnanca-zamestnavatela/cestovne-nahrady/zahranicna-cesta/stravne.html" target="_blank">Overiť zahraničné stravné (Ministerstvo práce)</a></div>', unsafe_allow_html=True)
+
+                    stravne_sk_cast = st.number_input("Slovenská časť stravného v € (ak vznikol nárok v SR)", value=float(sk_zaklad), step=0.10)
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.ip.gov.sk/cestovne-nahrady-pri-pracovnej-ceste/" target="_blank">Overiť tuzemské stravné (Inšpektorát práce)</a></div>', unsafe_allow_html=True)
                     
                     stravne_val = stravne_sk_cast + stravne_zah_cast
-                    st.success(f"💡 Výsledné stravné na 1 deň cesty: **{stravne_val:.2f} €**")
+                    st.success(f"💡 Výsledné stravné na 1 deň cesty (SK + Zahraničie): **{stravne_val:.2f} €**")
                     
                 else:
-                    stravne_val = st.number_input("Stravné (€/deň)", value=float(def_stravne_eur), step=0.10)
-                    st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné (Slov-lex)</a></div>', unsafe_allow_html=True)
+                    stravne_val = st.number_input("Stravné v € na deň (SR)", value=float(def_stravne_eur), step=0.10)
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.ip.gov.sk/cestovne-nahrady-pri-pracovnej-ceste/" target="_blank">Overiť sadzby a časové pásma SR (Inšpektorát práce)</a></div>', unsafe_allow_html=True)
         else: # TURNUS
             st.subheader("Parametre pre Turnus / Zahraničnú montáž")
             st.info("💡 Tento režim vygeneruje 1. deň ako Cestu na turnus, stredné dni ako denné dochádzanie z ubytovania do práce a posledný deň ako Návrat domov.")
