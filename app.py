@@ -304,7 +304,7 @@ elif st.session_state["page"] == "Cesťáky":
                 st.markdown("<br>", unsafe_allow_html=True)
                 noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
                 vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€)", value=0.0, step=10.0)
-           amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
+                amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
                 st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
                 
                 # --- NOVÁ INTELIGENTNÁ KALKULAČKA STRAVNÉHO ---
