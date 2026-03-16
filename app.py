@@ -304,26 +304,32 @@ elif st.session_state["page"] == "Cesťáky":
                 st.markdown("<br>", unsafe_allow_html=True)
                 noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
                 vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€)", value=0.0, step=10.0)
-                
-            with col_y:
-                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
-                spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
-                
-                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
-                st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (ŠÚ SR)</a></div>', unsafe_allow_html=True)
-                
-                amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
+           amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
                 st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
                 
-                if kurz_mena != "EUR":
-                    kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
-                    stravne_eur_calc = round(stravne_local / kurz_input, 2)
-                    stravne_val = st.number_input(f"Stravné v €", value=float(stravne_eur_calc), step=0.10)
-                    st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
+                # --- NOVÁ INTELIGENTNÁ KALKULAČKA STRAVNÉHO ---
+                if krajina != "Slovensko":
+                    sk_zaklad = 9.30 if rok >= 2026 else (8.30 if mesiac_int <= 3 else (8.80 if mesiac_int <= 11 else 9.30))
+                    
+                    if kurz_mena != "EUR":
+                        kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
+                        st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
+                        zaklad_zahranicie = round(stravne_local / kurz_input, 2)
+                    else:
+                        zaklad_zahranicie = def_stravne_eur
+                        
+                    st.markdown("<br><b>🇪🇺 Prechod hraníc (Kombinované stravné):</b>", unsafe_allow_html=True)
+                    st.info("Podľa zákona sa pri prechode hraníc stravné kráti podľa odpracovaných hodín v SR a v zahraničí.")
+                    
+                    stravne_sk_cast = st.number_input("Slovenská časť stravného (€)", value=float(sk_zaklad / 2), step=0.10)
+                    stravne_zah_cast = st.number_input("Zahraničná časť stravného (€)", value=float(zaklad_zahranicie / 2), step=0.10)
+                    
+                    stravne_val = stravne_sk_cast + stravne_zah_cast
+                    st.success(f"💡 Výsledné stravné na 1 deň cesty: **{stravne_val:.2f} €**")
+                    
                 else:
                     stravne_val = st.number_input("Stravné (€/deň)", value=float(def_stravne_eur), step=0.10)
                     st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné (Slov-lex)</a></div>', unsafe_allow_html=True)
-
         else: # TURNUS
             st.subheader("Parametre pre Turnus / Zahraničnú montáž")
             st.info("💡 Tento režim vygeneruje 1. deň ako Cestu na turnus, stredné dni ako denné dochádzanie z ubytovania do práce a posledný deň ako Návrat domov.")
