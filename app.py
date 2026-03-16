@@ -287,7 +287,7 @@ elif st.session_state["page"] == "Cesťáky":
             st.subheader("Parametre pre Jednodňové cesty")
             col_x, col_y = st.columns(2)
             with col_x:
-                meno = st.text_input("Meno zamestnanca", value="Ján Kolár")
+                meno = st.text_input("Meno zamestnanca", value="(Ján XXX)")
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
                 start_miesta_input = st.text_input("Štartovacie miesto (oddelené čiarkou)", value="Mýtne Ludany, Levice")
                 mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín")
