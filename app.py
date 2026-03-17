@@ -484,8 +484,7 @@ elif st.session_state["page"] == "Cesťáky":
                             curr += 2
                             
                         if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
-                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")
-Týmto je chyba so spotrebou odstránená a dni sa konečne vypíšu pekne v poradí (od                          
+                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")                          
                     # --- LOGIKA: TURNUSY ---
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
