@@ -396,11 +396,12 @@ elif st.session_state["page"] == "Cesťáky":
         suhlas = st.checkbox("Potvrdzujem, že zadané údaje sú pravdivé.")
         
         st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
-        if st.button("🚀 Vygenerovať profesionálny cesťák"):
+      if st.button("🚀 Vygenerovať profesionálny cesťák"):
             if not suhlas:
                 st.error("Musíte súhlasiť s podmienkami (zaškrtnite políčko vyššie).")
             else:
-                with st.spinner('Pripravujem dokument...'):
+                with st.spinner('Pripravujem dokument a rátam vzdialenosti...'):
+                    # Výpočet sadzby s premennými, ktoré sa teraz už určite nestratia
                     sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
                     
                     wb = Workbook()
@@ -426,8 +427,8 @@ elif st.session_state["page"] == "Cesťáky":
                         cell.font = Font(bold=True); cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True); cell.border = thin_border
 
                     curr = 8
-
-# --- LOGIKA: JEDNODŇOVÉ CESTY Z GPS ---
+                    
+                    # --- LOGIKA: JEDNODŇOVÉ CESTY Z GPS A CHRONOLOGICKÉ ZORADENIE ---
                     if "Klasické" in typ_cesty:
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
@@ -441,10 +442,9 @@ elif st.session_state["page"] == "Cesťáky":
                         
                         aktualna_suma = noclazne_suma + vedlajsie_suma
                         dosiahnuta_suma = False
+                        vybrane_cesty = []
                         
-                        vybrane_cesty = [] # Sem si najprv cesty uložíme
-                        
-                        # FÁZA 1: Náhodný výber dní a výpočet reálnych KM z máp
+                        # FÁZA 1: Náhodný výber a rátanie KM z GPS
                         for idx, d in enumerate(dni):
                             if aktualna_suma >= cielova_suma:
                                 dosiahnuta_suma = True
@@ -459,23 +459,17 @@ elif st.session_state["page"] == "Cesťáky":
                             
                             cesto = km_den_spolu * sadzba_km
                             total = cesto + stravne_val
-                            
                             aktualna_suma += total
                             
-                            # Cestu zatiaľ nezapisujeme, len ju uložíme do pamäte
                             vybrane_cesty.append({
-                                "datum": d,
-                                "start": start_m,
-                                "end": end_m,
-                                "km": km_den_spolu,
-                                "cesto": cesto,
-                                "total": total
+                                "datum": d, "start": start_m, "end": end_m, "km": km_den_spolu, 
+                                "cesto": cesto, "total": total
                             })
                             
-                        # FÁZA 2: Chronologické zoradenie podľa dátumu!
+                        # FÁZA 2: Chronologické zoradenie dní
                         vybrane_cesty = sorted(vybrane_cesty, key=lambda x: x["datum"])
                         
-                        # FÁZA 3: Zápis zoradených ciest do Excelu
+                        # FÁZA 3: Zápis do Excelu
                         for idx, cesta in enumerate(vybrane_cesty):
                             akt_noc = noclazne_suma if idx == 0 else 0.0
                             akt_vedl = vedlajsie_suma if idx == (len(vybrane_cesty)-1) else 0.0
@@ -489,9 +483,9 @@ elif st.session_state["page"] == "Cesťáky":
                                     ws.cell(row=curr+r_off, column=c_idx).border = thin_border; ws.cell(row=curr+r_off, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                             curr += 2
                             
-                        # UPOZORNENIE PRE ÚČTOVNÍČKU
                         if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
-                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")                           
+                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")
+Týmto je chyba so spotrebou odstránená a dni sa konečne vypíšu pekne v poradí (od                          
                     # --- LOGIKA: TURNUSY ---
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
