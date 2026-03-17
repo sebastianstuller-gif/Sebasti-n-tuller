@@ -427,7 +427,7 @@ elif st.session_state["page"] == "Cesťáky":
 
                     curr = 8
 
-# --- LOGIKA: JEDNODŇOVÉ CESTY ---
+# --- LOGIKA: JEDNODŇOVÉ CESTY Z GPS ---
                     if "Klasické" in typ_cesty:
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
@@ -442,40 +442,56 @@ elif st.session_state["page"] == "Cesťáky":
                         aktualna_suma = noclazne_suma + vedlajsie_suma
                         dosiahnuta_suma = False
                         
+                        vybrane_cesty = [] # Sem si najprv cesty uložíme
+                        
+                        # FÁZA 1: Náhodný výber dní a výpočet reálnych KM z máp
                         for idx, d in enumerate(dni):
-                            # Skontrolujeme, či sme už neprešvihli cieľovú sumu
                             if aktualna_suma >= cielova_suma:
                                 dosiahnuta_suma = True
                                 break
                                 
                             start_m = random.choice(start_mesta_list)
                             end_m = random.choice(mesta_list)
-                            if start_m == end_m: continue # Nechceme cestu do toho istého mesta
+                            if start_m == end_m: continue
                             
-                            # VYTIAHNUTIE REÁLNYCH KILOMETROV
                             km_jedna_cesta = get_real_distance(start_m, end_m)
-                            km_den_spolu = km_jedna_cesta * 2 # Cesta tam aj späť
-                            
-                            akt_noc = noclazne_suma if idx == 0 else 0.0
-                            akt_vedl = vedlajsie_suma if idx == (len(dni)-1) else 0.0 
+                            km_den_spolu = km_jedna_cesta * 2
                             
                             cesto = km_den_spolu * sadzba_km
-                            total = cesto + stravne_val + akt_noc + akt_vedl
+                            total = cesto + stravne_val
                             
                             aktualna_suma += total
                             
-                            # Zápis do Excelu s reálnymi KM
-                            ws.append([d.strftime("%d.%m.%Y"), f"{start_m} -> {end_m}", spz, km_den_spolu, "08:00", round(cesto, 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(total, 2)])
-                            ws.append(["", f"{end_m} -> {start_m}", "", "", "16:30", "", "", "", "", ""])
+                            # Cestu zatiaľ nezapisujeme, len ju uložíme do pamäte
+                            vybrane_cesty.append({
+                                "datum": d,
+                                "start": start_m,
+                                "end": end_m,
+                                "km": km_den_spolu,
+                                "cesto": cesto,
+                                "total": total
+                            })
+                            
+                        # FÁZA 2: Chronologické zoradenie podľa dátumu!
+                        vybrane_cesty = sorted(vybrane_cesty, key=lambda x: x["datum"])
+                        
+                        # FÁZA 3: Zápis zoradených ciest do Excelu
+                        for idx, cesta in enumerate(vybrane_cesty):
+                            akt_noc = noclazne_suma if idx == 0 else 0.0
+                            akt_vedl = vedlajsie_suma if idx == (len(vybrane_cesty)-1) else 0.0
+                            celkovy_total = cesta["total"] + akt_noc + akt_vedl
+                            
+                            ws.append([cesta["datum"].strftime("%d.%m.%Y"), f"{cesta['start']} -> {cesta['end']}", spz, cesta["km"], "08:00", round(cesta["cesto"], 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(celkovy_total, 2)])
+                            ws.append(["", f"{cesta['end']} -> {cesta['start']}", "", "", "16:30", "", "", "", "", ""])
                             
                             for r_off in [0, 1]:
                                 for c_idx in range(1, 11):
                                     ws.cell(row=curr+r_off, column=c_idx).border = thin_border; ws.cell(row=curr+r_off, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                             curr += 2
                             
-                        # VAROVANIE PRE ÚČTOVNÍČKU / KLIENTA
+                        # UPOZORNENIE PRE ÚČTOVNÍČKU
                         if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
-                            st.warning(f"⚠️ UPOZORNENIE: Softvér použil REÁLNE vzdialenosti z GPS máp. Keďže zadané mestá sú príliš blízko, nie je fyzicky možné dosiahnuť {cielova_suma} €. Reálne sa vygenerovalo iba {aktualna_suma:.2f} €. Ak chcete vyššiu sumu, musíte do kolonky pridať vzdialenejšie mestá (napr. Košice, Poprad).")                            
+                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")                           
                     # --- LOGIKA: TURNUSY ---
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
