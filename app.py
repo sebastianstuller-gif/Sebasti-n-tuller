@@ -6,9 +6,9 @@ import holidays
 import io
 import os
 import requests
+import time
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
-import time
 
 # --- KONFIGURÁCIA STRÁNKY ---
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
@@ -34,31 +34,31 @@ def get_exchange_rate(currency):
         pass
     fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
+
 # --- CACHOVANIE REÁLNYCH VZDIALENOSTÍ Z MÁP ---
 @st.cache_data(ttl=86400)
 def get_real_distance(start_city, end_city):
     try:
         headers = {'User-Agent': 'AutocestakPro/1.0 (sebastian@jmcredit.sk)'}
-        # 1. Zistenie GPS súradníc (Geocoding)
         s_url = f"https://nominatim.openstreetmap.org/search?q={start_city},+Slovakia&format=json&limit=1"
         e_url = f"https://nominatim.openstreetmap.org/search?q={end_city},+Slovakia&format=json&limit=1"
         
         s_res = requests.get(s_url, headers=headers).json()
-        time.sleep(0.5) # Musíme urobiť pauzu, aby nás bezplatný server nezablokoval
+        time.sleep(0.5) # Ochrana proti zablokovaniu serverom
         e_res = requests.get(e_url, headers=headers).json()
         
         if s_res and e_res:
             lon1, lat1 = s_res[0]['lon'], s_res[0]['lat']
             lon2, lat2 = e_res[0]['lon'], e_res[0]['lat']
             
-            # 2. Vypočítanie reálnej vzdialenosti po cestách
             route_url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
             r_res = requests.get(route_url).json()
             if r_res.get("code") == "Ok":
                 return round(r_res["routes"][0]["distance"] / 1000) # Prevod z metrov na km
     except Exception as e:
         pass
-    return random.randint(30, 80) # Núdzová záloha, ak by vypadol internet
+    return random.randint(30, 80) # Núdzová záloha
+
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
@@ -73,8 +73,7 @@ translations = {
         "hero_sub": "Sme tu, aby sme pomohli a zefektívnili vašu prácu.",
         "contact_small": "Zavolajte nám a my vám pomôžeme",
         "plan_mo": "Mesačné predplatné", "plan_yr": "Ročné predplatné", "btn_buy": "Kúpiť",
-        "login_title": "Prístup do generátora", "login_pass": "Heslo", "login_submit": "Vstúpiť",
-        "gen_title": "Generátor cesťákov"
+        "login_title": "Prístup do generátora", "login_pass": "Heslo", "login_submit": "Vstúpiť"
     }
 }
 t = translations[st.session_state["lang"]]
@@ -167,7 +166,6 @@ if st.session_state["show_login"] and not st.session_state["authenticated"]:
 
 # --- OBSAH STRÁNOK ---
 if st.session_state["page"] == "Domov":
-    # HERO SECTION (Vrátený kontaktný box)
     c1, c2 = st.columns([1.5, 1])
     with c1:
         st.markdown(f"<div class='hero-title'>{t['hero_title']}</div>", unsafe_allow_html=True)
@@ -184,7 +182,6 @@ if st.session_state["page"] == "Domov":
     st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ABOUT FOUNDER SECTION (Vrátená fotka a text)
     f1, f2 = st.columns([1, 2])
     with f1:
         if os.path.exists("profilovka.png"): st.image("profilovka.png", use_container_width=True)
@@ -213,7 +210,6 @@ if st.session_state["page"] == "Domov":
 
 elif st.session_state["page"] == "Cesťáky":
     if not st.session_state["authenticated"]:
-        # PREDPLATNÉ BOX
         st.markdown("<br><br>", unsafe_allow_html=True)
         p1, p2, p3, p4 = st.columns([1, 2, 2, 1])
         with p2:
@@ -240,13 +236,11 @@ elif st.session_state["page"] == "Cesťáky":
     else:
         st.title("Generátor cesťákov")
         
-        # --- VÝBER TYPU CESTY ---
         typ_cesty = st.radio("Vyberte typ pracovných ciest:", 
                              ["1️⃣ Klasické jednodňové cesty (Každý deň návrat domov)", 
                               "2️⃣ Turnus / Dlhodobá cesta (Ubytovanie v zahraničí/mimo bydliska)"])
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- ZÁKLADNÉ NASTAVENIA ---
         mesiace_zoznam = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"]
         c_krajina, c_rok, c_mes = st.columns(3)
         with c_krajina: krajina = st.selectbox("Krajina cesty / turnusu", ["Slovensko", "Nemecko", "Rakúsko", "Belgicko", "Maďarsko", "Česko", "Švédsko"])
@@ -256,13 +250,11 @@ elif st.session_state["page"] == "Cesťáky":
         mesiac_int = mesiace_zoznam.index(mesiac_nazov) + 1
         dni_v_mesiaci = calendar.monthrange(rok, mesiac_int)[1]
         
-        # --- LOGIKA SVIATKOV A NEDIEĽ PRE VÝBER ---
         sk_hol_obj = holidays.Slovakia(years=rok)
         vsetky_dni_v_mesiaci = [datetime.date(rok, mesiac_int, d) for d in range(1, dni_v_mesiaci + 1)]
         nedele_a_sviatky = [d for d in vsetky_dni_v_mesiaci if d.weekday() == 6 or d in sk_hol_obj]
         moznosti_ned_svi = {d.strftime("%d.%m.%Y") + (" (Sviatok)" if d in sk_hol_obj else " (Nedeľa)"): d for d in nedele_a_sviatky}
         
-        # --- LOGIKA PRE AMORTIZÁCIU A STRAVNÉ ---
         def_amort = 0.313 if rok >= 2026 else (0.265 if mesiac_int <= 2 else (0.281 if mesiac_int <= 5 else 0.296))
         
         kurz_mena = "EUR"
@@ -282,12 +274,11 @@ elif st.session_state["page"] == "Cesťáky":
         
         vybrane_nedele_sviatky = [] 
         
-        # --- FORMULÁRE PODĽA TYPU ---
         if "Klasické" in typ_cesty:
             st.subheader("Parametre pre Jednodňové cesty")
             col_x, col_y = st.columns(2)
             with col_x:
-                meno = st.text_input("Meno zamestnanca", value="(Ján XXX)")
+                meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
                 start_miesta_input = st.text_input("Štartovacie miesto (oddelené čiarkou)", value="Mýtne Ludany, Levice")
                 mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín")
@@ -304,13 +295,18 @@ elif st.session_state["page"] == "Cesťáky":
                 st.markdown("<br>", unsafe_allow_html=True)
                 noclazne_suma = st.number_input("Nocľažné / Ubytovanie celkom (€)", value=0.0, step=10.0)
                 vedlajsie_suma = st.number_input("Nutné vedľajšie výdavky celkom (€)", value=0.0, step=10.0)
+                
+            with col_y:
+                cielova_suma = st.number_input("Cieľová suma (€)", value=1500.0, step=50.0)
+                spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
+                cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
+                st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (ŠÚ SR)</a></div>', unsafe_allow_html=True)
+                
                 amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
                 st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
                 
-              # --- INTELIGENTNÁ KALKULAČKA STRAVNÉHO (PODĽA ZÁKONA) ---
                 if krajina != "Slovensko":
                     sk_zaklad = 9.30 if rok >= 2026 else (8.30 if mesiac_int <= 3 else (8.80 if mesiac_int <= 11 else 9.30))
-                    
                     if kurz_mena != "EUR":
                         kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
                         st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
@@ -319,19 +315,11 @@ elif st.session_state["page"] == "Cesťáky":
                         zaklad_zahranicie = def_stravne_eur
                         
                     st.markdown("<br><b>🇪🇺 Zákonné krátenie stravného (Prechod hraníc):</b>", unsafe_allow_html=True)
-                    
-                    # Automatický výpočet podľa časových pásiem (z obrázkov a zákonov)
                     cas_zahranicie = st.selectbox("Čas strávený v zahraničí (podľa Min. práce):", 
-                                                  ["do 6 hodín (25 % zo základnej sadzby)", 
-                                                   "nad 6 až do 12 hodín (50 % zo základnej sadzby)", 
-                                                   "nad 12 hodín (100 % zo základnej sadzby)"], index=1)
-                    
-                    if "do 6" in cas_zahranicie:
-                        zah_vypocet = zaklad_zahranicie * 0.25
-                    elif "do 12" in cas_zahranicie:
-                        zah_vypocet = zaklad_zahranicie * 0.50
-                    else:
-                        zah_vypocet = zaklad_zahranicie
+                                                  ["do 6 hodín (25 % zo základnej sadzby)", "nad 6 až do 12 hodín (50 % zo základnej sadzby)", "nad 12 hodín (100 % zo základnej sadzby)"], index=1)
+                    if "do 6" in cas_zahranicie: zah_vypocet = zaklad_zahranicie * 0.25
+                    elif "do 12" in cas_zahranicie: zah_vypocet = zaklad_zahranicie * 0.50
+                    else: zah_vypocet = zaklad_zahranicie
                         
                     stravne_zah_cast = st.number_input("Zahraničná časť stravného (€)", value=float(zah_vypocet), step=0.10)
                     st.markdown('<div class="verify-link">🔍 <a href="https://www.employment.gov.sk/sk/praca-zamestnanost/vztah-zamestnanca-zamestnavatela/cestovne-nahrady/zahranicna-cesta/stravne.html" target="_blank">Overiť zahraničné stravné (Ministerstvo práce)</a></div>', unsafe_allow_html=True)
@@ -341,10 +329,10 @@ elif st.session_state["page"] == "Cesťáky":
                     
                     stravne_val = stravne_sk_cast + stravne_zah_cast
                     st.success(f"💡 Výsledné stravné na 1 deň cesty (SK + Zahraničie): **{stravne_val:.2f} €**")
-                    
                 else:
                     stravne_val = st.number_input("Stravné v € na deň (SR)", value=float(def_stravne_eur), step=0.10)
                     st.markdown('<div class="verify-link">🔍 <a href="https://www.ip.gov.sk/cestovne-nahrady-pri-pracovnej-ceste/" target="_blank">Overiť sadzby a časové pásma SR (Inšpektorát práce)</a></div>', unsafe_allow_html=True)
+
         else: # TURNUS
             st.subheader("Parametre pre Turnus / Zahraničnú montáž")
             st.info("💡 Tento režim vygeneruje 1. deň ako Cestu na turnus, stredné dni ako denné dochádzanie z ubytovania do práce a posledný deň ako Návrat domov.")
@@ -376,18 +364,36 @@ elif st.session_state["page"] == "Cesťáky":
                 km_denne = st.number_input("Denné dochádzanie do práce (Ubytovanie -> Stavba -> Ubytovanie) v km", value=15)
                 
                 spotreba = st.number_input("Spotreba (l/100km)", value=6.5, step=0.1)
-                
                 cena_phm = st.number_input("Cena PHM (€/l)", value=1.62, step=0.01)
                 st.markdown('<div class="verify-link">🔍 <a href="https://datacube.statistics.sk/#!/view/sk/VBD_INTERN/sp0202ms/v_sp0202ms_00_00_00_sk" target="_blank">Overiť ceny PHM (ŠÚ SR)</a></div>', unsafe_allow_html=True)
                 
                 amortizacia = st.number_input("Amortizácia (€/km)", value=float(def_amort), format="%.3f")
                 st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/73/" target="_blank">Overiť sadzbu amortizácie (Slov-lex)</a></div>', unsafe_allow_html=True)
                 
-                if kurz_mena != "EUR":
-                    kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
-                    stravne_eur_calc = round(stravne_local / kurz_input, 2)
-                    stravne_val = st.number_input(f"Stravné v € na deň", value=float(stravne_eur_calc), step=0.10)
-                    st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
+                if krajina != "Slovensko":
+                    sk_zaklad = 9.30 if rok >= 2026 else (8.30 if mesiac_int <= 3 else (8.80 if mesiac_int <= 11 else 9.30))
+                    if kurz_mena != "EUR":
+                        kurz_input = st.number_input(f"Aktuálny kurz (1 EUR = X {kurz_mena})", value=float(def_kurz), format="%.3f")
+                        st.markdown(f'<div class="verify-link">🔍 <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank">Overiť kurz na ECB</a></div>', unsafe_allow_html=True)
+                        zaklad_zahranicie = round(stravne_local / kurz_input, 2)
+                    else:
+                        zaklad_zahranicie = def_stravne_eur
+                        
+                    st.markdown("<br><b>🇪🇺 Zákonné krátenie stravného (Prechod hraníc):</b>", unsafe_allow_html=True)
+                    cas_zahranicie = st.selectbox("Čas strávený v zahraničí (podľa Min. práce):", 
+                                                  ["do 6 hodín (25 % zo základnej sadzby)", "nad 6 až do 12 hodín (50 % zo základnej sadzby)", "nad 12 hodín (100 % zo základnej sadzby)"], index=1, key="cas2")
+                    if "do 6" in cas_zahranicie: zah_vypocet = zaklad_zahranicie * 0.25
+                    elif "do 12" in cas_zahranicie: zah_vypocet = zaklad_zahranicie * 0.50
+                    else: zah_vypocet = zaklad_zahranicie
+                        
+                    stravne_zah_cast = st.number_input("Zahraničná časť stravného (€)", value=float(zah_vypocet), step=0.10, key="zah_turnus")
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.employment.gov.sk/sk/praca-zamestnanost/vztah-zamestnanca-zamestnavatela/cestovne-nahrady/zahranicna-cesta/stravne.html" target="_blank">Overiť zahraničné stravné (Ministerstvo práce)</a></div>', unsafe_allow_html=True)
+
+                    stravne_sk_cast = st.number_input("Slovenská časť stravného v € (ak vznikol nárok v SR)", value=float(sk_zaklad), step=0.10, key="sk_turnus")
+                    st.markdown('<div class="verify-link">🔍 <a href="https://www.ip.gov.sk/cestovne-nahrady-pri-pracovnej-ceste/" target="_blank">Overiť tuzemské stravné (Inšpektorát práce)</a></div>', unsafe_allow_html=True)
+                    
+                    stravne_val = stravne_sk_cast + stravne_zah_cast
+                    st.success(f"💡 Výsledné stravné na 1 deň cesty: **{stravne_val:.2f} €**")
                 else:
                     stravne_val = st.number_input("Stravné v € na deň", value=float(def_stravne_eur), step=0.10)
                     st.markdown('<div class="verify-link">🔍 <a href="https://www.slov-lex.sk/pravne-predpisy/SK/ZZ/2024/211/" target="_blank">Overiť stravné (Slov-lex)</a></div>', unsafe_allow_html=True)
@@ -401,7 +407,6 @@ elif st.session_state["page"] == "Cesťáky":
                 st.error("Musíte súhlasiť s podmienkami (zaškrtnite políčko vyššie).")
             else:
                 with st.spinner('Pripravujem dokument a rátam vzdialenosti...'):
-                    # Výpočet sadzby s premennými, ktoré sa teraz už určite nestratia
                     sadzba_km = amortizacia + ((spotreba / 100) * cena_phm)
                     
                     wb = Workbook()
@@ -418,17 +423,27 @@ elif st.session_state["page"] == "Cesťáky":
                     ws['A3'] = "Meno a priezvisko:"; ws['C3'] = meno
                     ws['A4'] = "Vozidlo (ŠPZ):"; ws['C4'] = spz
                     ws['A5'] = "Obdobie:"; ws['C5'] = f"{mesiac_nazov} {rok}"
-                    for r in range(3,6): ws[f'A{r}'].font = Font(bold=True)
+                    
+                    # --- NOVINKA: ZÁPIS PARAMETROV DO HLAVIČKY EXCELU ---
+                    ws['F3'] = "Spotreba (l/100km):"; ws['G3'] = spotreba
+                    ws['F4'] = "Cena PHM (€/l):"; ws['G4'] = cena_phm
+                    ws['F5'] = "Amortizácia (€/km):"; ws['G5'] = amortizacia
+                    ws['F6'] = "Sadzba celkom (€/km):"; ws['G6'] = round(sadzba_km, 3)
+
+                    for r in range(3,7): 
+                        ws[f'A{r}'].font = Font(bold=True)
+                        ws[f'F{r}'].font = Font(bold=True)
+                        ws[f'F{r}'].alignment = Alignment(horizontal="right")
+                        ws[f'G{r}'].alignment = Alignment(horizontal="left")
 
                     headers = ["Dátum", "Miesto (Od-Do)", "Vozidlo", "Km", "Čas", "Cestovné", "Stravné", "Ubytko", "Vedľajšie", "Spolu (€)"]
-                    row_h = 7
+                    row_h = 8
                     for c, text in enumerate(headers):
                         cell = ws.cell(row=row_h, column=c+1, value=text)
                         cell.font = Font(bold=True); cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True); cell.border = thin_border
 
-                    curr = 8
+                    curr = 9
                     
-                    # --- LOGIKA: JEDNODŇOVÉ CESTY Z GPS A CHRONOLOGICKÉ ZORADENIE ---
                     if "Klasické" in typ_cesty:
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
@@ -444,7 +459,6 @@ elif st.session_state["page"] == "Cesťáky":
                         dosiahnuta_suma = False
                         vybrane_cesty = []
                         
-                        # FÁZA 1: Náhodný výber a rátanie KM z GPS
                         for idx, d in enumerate(dni):
                             if aktualna_suma >= cielova_suma:
                                 dosiahnuta_suma = True
@@ -466,10 +480,8 @@ elif st.session_state["page"] == "Cesťáky":
                                 "cesto": cesto, "total": total
                             })
                             
-                        # FÁZA 2: Chronologické zoradenie dní
                         vybrane_cesty = sorted(vybrane_cesty, key=lambda x: x["datum"])
                         
-                        # FÁZA 3: Zápis do Excelu
                         for idx, cesta in enumerate(vybrane_cesty):
                             akt_noc = noclazne_suma if idx == 0 else 0.0
                             akt_vedl = vedlajsie_suma if idx == (len(vybrane_cesty)-1) else 0.0
@@ -484,26 +496,19 @@ elif st.session_state["page"] == "Cesťáky":
                             curr += 2
                             
                         if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
-                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")                          
-                    # --- LOGIKA: TURNUSY ---
+                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")
+                            
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
                             d = datetime.date(rok, mesiac_int, day)
-                            
-                            if d < start_turnus or (ma_navrat and d > end_turnus):
-                                continue
+                            if d < start_turnus or (ma_navrat and d > end_turnus): continue
                             
                             is_start = (d == start_turnus)
                             is_end = (ma_navrat and d == end_turnus)
                             is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
                             is_workday = is_standard_workday or (d in vybrane_nedele_sviatky)
                             
-                            km = 0
-                            trasa_od = ""
-                            trasa_do = ""
-                            cas_od = "08:00"
-                            cas_do = "16:30"
-                            ma_cestu = False
+                            km = 0; trasa_od = ""; trasa_do = ""; cas_od = "08:00"; cas_do = "16:30"; ma_cestu = False
                             
                             if is_start:
                                 km = km_tam; trasa_od = miesto_domov; trasa_do = miesto_ubytovanie; cas_od = "06:00"; cas_do = "20:00"; ma_cestu = True
@@ -528,7 +533,6 @@ elif st.session_state["page"] == "Cesťáky":
                                     ws.cell(row=curr, column=c_idx).border = thin_border; ws.cell(row=curr, column=c_idx).alignment = Alignment(horizontal="center", vertical="center")
                                 curr += 1
 
-                    # SUMA A PODPIS (Spoločné)
                     ws.append([])
                     sum_row = curr + 1
                     ws.cell(row=sum_row, column=1, value="CELKOM K VÝPLATE:").font = Font(bold=True)
