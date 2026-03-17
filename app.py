@@ -396,7 +396,7 @@ elif st.session_state["page"] == "Cesťáky":
         suhlas = st.checkbox("Potvrdzujem, že zadané údaje sú pravdivé.")
         
         st.markdown('<div class="gen-btn">', unsafe_allow_html=True)
-      if st.button("🚀 Vygenerovať profesionálny cesťák"):
+        if st.button("🚀 Vygenerovať profesionálny cesťák"):
             if not suhlas:
                 st.error("Musíte súhlasiť s podmienkami (zaškrtnite políčko vyššie).")
             else:
