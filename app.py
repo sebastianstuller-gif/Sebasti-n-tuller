@@ -40,8 +40,9 @@ def get_exchange_rate(currency):
 def get_real_distance(start_city, end_city):
     try:
         headers = {'User-Agent': 'AutocestakPro/1.0 (sebastian@jmcredit.sk)'}
-        s_url = f"https://nominatim.openstreetmap.org/search?q={start_city},+Slovakia&format=json&limit=1"
-        e_url = f"https://nominatim.openstreetmap.org/search?q={end_city},+Slovakia&format=json&limit=1"
+        # Odstránené "+Slovakia" -> systém teraz vyhľadáva mestá celosvetovo
+        s_url = f"https://nominatim.openstreetmap.org/search?q={start_city}&format=json&limit=1"
+        e_url = f"https://nominatim.openstreetmap.org/search?q={end_city}&format=json&limit=1"
         
         s_res = requests.get(s_url, headers=headers).json()
         time.sleep(0.5) # Ochrana proti zablokovaniu serverom
@@ -58,7 +59,6 @@ def get_real_distance(start_city, end_city):
     except Exception as e:
         pass
     return random.randint(30, 80) # Núdzová záloha
-
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
