@@ -36,54 +36,41 @@ def get_exchange_rate(currency):
     fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
 
-# --- NEPRIESTRELNÁ DATABÁZA SÚRADNÍC (Ochrana pred výpadkom GPS a zlou pamäťou) ---
+# --- INTERNÁ DATABÁZA (Istota pre najčastejšie mestá) ---
 KNOWN_CITIES = {
     "levice": (18.6071, 48.2156),
     "mýtne ludany": (18.6360, 48.1691),
-    "mytne ludany": (18.6360, 48.1691),
     "mochovce": (18.4554, 48.2586),
     "bratislava": (17.1077, 48.1486),
     "nitra": (18.0845, 48.3119),
     "trenčín": (18.0443, 48.8945),
-    "trencin": (18.0443, 48.8945),
-    "poprad": (20.2951, 49.0526),
     "viedeň": (16.3738, 48.2082),
+    "viedeň, au": (16.3738, 48.2082),
     "vieden": (16.3738, 48.2082),
-    "wien": (16.3738, 48.2082),
-    "viedeň, at": (16.3738, 48.2082),
     "temelín, cz": (14.3468, 49.1973),
     "temelín": (14.3468, 49.1973),
-    "temelin": (14.3468, 49.1973),
     "dunaújváros, hu": (18.9416, 46.9634),
     "dunaújváros": (18.9416, 46.9634),
-    "dunaujvaros": (18.9416, 46.9634),
-    "heinsberg": (6.1011, 51.0664),
-    "heinsberg, de": (6.1011, 51.0664),
-    "žilina": (18.7394, 49.2231),
-    "košice": (21.2610, 48.7163),
-    "banská bystrica": (19.1462, 48.7355),
-    "zvolen": (19.1411, 48.5744),
-    "trnava": (17.5876, 48.3709),
-    "nové zámky": (18.1619, 47.9856),
-    "tekovské lužany": (18.5385, 48.0967),
-    "podlužany": (18.6214, 48.2541),
-    "michalovce": (21.9195, 48.7505)
+    "praha, cz": (14.4208, 50.0878),
+    "praha": (14.4208, 50.0878),
+    "brno, cz": (16.6068, 49.1951),
+    "brno": (16.6068, 49.1951)
 }
 
+# --- NOVÝ PROFI GPS SYSTÉM (Photon Komoot) ---
 @st.cache_data(ttl=86400)
-def get_city_coords_v3(city_name):
+def get_city_coords_v4(city_name):
     cn = city_name.strip().lower()
     if cn in KNOWN_CITIES:
         return KNOWN_CITIES[cn]
     
-    # Ak mesto nie je v našom super-zozname, opýta sa GPS servera
     try:
-        headers = {'User-Agent': 'AutocestakPro/5.0 (sebastian@jmcredit.sk)'}
-        url = f"https://nominatim.openstreetmap.org/search?q={city_name}&format=json&limit=1"
+        headers = {'User-Agent': 'AutocestakPro/6.0 (sebastian@jmcredit.sk)'}
+        url = f"https://photon.komoot.io/api/?q={city_name}&limit=1"
         res = requests.get(url, headers=headers, timeout=5).json()
-        if res:
-            time.sleep(1.0) 
-            return float(res[0]['lon']), float(res[0]['lat'])
+        if res and 'features' in res and len(res['features']) > 0:
+            coords = res['features'][0]['geometry']['coordinates']
+            return float(coords[0]), float(coords[1])
     except Exception:
         pass
     return None, None
@@ -97,9 +84,9 @@ def haversine(lon1, lat1, lon2, lat2):
     return R * c
 
 @st.cache_data(ttl=86400)
-def get_real_distance_v3(start_city, end_city):
-    lon1, lat1 = get_city_coords_v3(start_city)
-    lon2, lat2 = get_city_coords_v3(end_city)
+def get_real_distance_v4(start_city, end_city):
+    lon1, lat1 = get_city_coords_v4(start_city)
+    lon2, lat2 = get_city_coords_v4(end_city)
 
     if lon1 and lon2:
         try:
@@ -340,7 +327,7 @@ elif st.session_state["page"] == "Cesťáky":
                 
                 st.info("🌍 **INTELIGENTNÉ MAPY:** Každé mesto zadajte jednoducho do nového riadku (stlačte Enter). Tým pádom môžete písať aj 'Temelín, CZ' a program sa nepomýli.")
                 start_miesta_input = st.text_area("Štartovacie miesta (Každé mesto do nového riadku):", value="Mýtne Ludany\nLevice")
-                mesta_sk = st.text_area("Konečné destinácie (Každé mesto do nového riadku):", value="Bratislava\nNitra\nViedeň\nTemelín, CZ\nDunaújváros, HU")
+                mesta_sk = st.text_area("Konečné destinácie (Každé mesto do nového riadku):", value="Bratislava\nNitra\nViedeň\nTemelín, CZ\nDunaújváros, HU\nPraha, CZ\nBrno, CZ")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 praca_sobota = st.checkbox("Pracuje sa aj v Sobotu? (Generovať cesty na soboty)", value=False)
@@ -515,21 +502,31 @@ elif st.session_state["page"] == "Cesťáky":
                         start_mesta_list = [s.strip() for s in start_miesta_input.split('\n') if s.strip()]
                         mesta_list = [m.strip() for m in mesta_sk.split('\n') if m.strip()]
                         
+                        random.shuffle(start_mesta_list)
+                        random.shuffle(mesta_list)
+                        
                         aktualna_suma = noclazne_suma + vedlajsie_suma
                         dosiahnuta_suma = False
                         vybrane_cesty = []
+                        
+                        # ZMENA: Namiesto vyberania z klobúka točíme mestá pekne zaradom
+                        s_idx = 0
+                        d_idx = 0
                         
                         for idx, d in enumerate(dni):
                             if aktualna_suma >= cielova_suma:
                                 dosiahnuta_suma = True
                                 break
                                 
-                            start_m = random.choice(start_mesta_list)
-                            end_m = random.choice(mesta_list)
-                            if start_m == end_m: continue
+                            start_m = start_mesta_list[s_idx % len(start_mesta_list)]
+                            end_m = mesta_list[d_idx % len(mesta_list)]
                             
-                            # TOTO JE TEN OPRAVENÝ MOTOR "v3"
-                            km_jedna_cesta = get_real_distance_v3(start_m, end_m)
+                            # Ak by sa omylom vybralo to isté mesto na štart aj do cieľa
+                            if start_m == end_m:
+                                d_idx += 1
+                                end_m = mesta_list[d_idx % len(mesta_list)]
+                                
+                            km_jedna_cesta = get_real_distance_v4(start_m, end_m)
                             km_den_spolu = km_jedna_cesta * 2
                             
                             cesto = km_den_spolu * sadzba_km
@@ -540,6 +537,9 @@ elif st.session_state["page"] == "Cesťáky":
                                 "datum": d, "start": start_m, "end": end_m, "km": km_den_spolu, 
                                 "cesto": cesto, "total": total
                             })
+                            
+                            s_idx += 1
+                            d_idx += 1
                             
                         vybrane_cesty = sorted(vybrane_cesty, key=lambda x: x["datum"])
                         
@@ -557,7 +557,7 @@ elif st.session_state["page"] == "Cesťáky":
                             curr += 2
                             
                         if not dosiahnuta_suma and aktualna_suma < (cielova_suma * 0.95):
-                            st.warning(f"⚠️ UPOZORNENIE (Reálne GPS mapy): Vzhľadom na reálne vzdialenosti medzi zadanými mestami nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")
+                            st.warning(f"⚠️ UPOZORNENIE: Vzhľadom na reálne vzdialenosti nebolo možné dosiahnuť {cielova_suma} €. Vygenerovalo sa {aktualna_suma:.2f} €. Pre vyššiu sumu musíte pridať vzdialenejšie mestá do zoznamu.")
                             
                     else:
                         for day in range(1, dni_v_mesiaci + 1):
