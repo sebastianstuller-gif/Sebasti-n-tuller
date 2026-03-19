@@ -9,8 +9,7 @@ import requests
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 
-# --- TVOJ GOOGLE MAPS API KĽÚČ ---
-GOOGLE_API_KEY = "AIzaSyAEV0SSxKKAW9Bve5i2bZaJwQvz6bZVABw"
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # --- KONFIGURÁCIA STRÁNKY ---
 st.set_page_config(page_title="AUTOCESTAK pro", layout="wide", initial_sidebar_state="collapsed")
