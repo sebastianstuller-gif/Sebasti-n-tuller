@@ -7,6 +7,7 @@ import io
 import os
 import requests
 import time
+import math
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 
@@ -35,29 +36,48 @@ def get_exchange_rate(currency):
     fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
 
-# --- CACHOVANIE REÁLNYCH VZDIALENOSTÍ Z MÁP ---
+# --- NOVÝ A NEPRIESTRELNÝ SYSTÉM NA VZDIALENOSTI ---
+@st.cache_data(ttl=86400)
+def get_city_coords(city_name):
+    try:
+        headers = {'User-Agent': 'AutocestakPro/2.0 (sebastian@jmcredit.sk)'}
+        url = f"https://nominatim.openstreetmap.org/search?q={city_name}&format=json&limit=1"
+        res = requests.get(url, headers=headers, timeout=5).json()
+        if res:
+            time.sleep(1.0) # Bezpečná pauza aby nás server nikdy nezablokoval
+            return float(res[0]['lon']), float(res[0]['lat'])
+    except Exception:
+        pass
+    return None, None
+
+def haversine(lon1, lat1, lon2, lat2):
+    R = 6371 # Polomer Zeme v km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
 @st.cache_data(ttl=86400)
 def get_real_distance(start_city, end_city):
-    try:
-        headers = {'User-Agent': 'AutocestakPro/1.0 (sebastian@jmcredit.sk)'}
-        s_url = f"https://nominatim.openstreetmap.org/search?q={start_city}&format=json&limit=1"
-        e_url = f"https://nominatim.openstreetmap.org/search?q={end_city}&format=json&limit=1"
-        
-        s_res = requests.get(s_url, headers=headers).json()
-        time.sleep(1.0) # Zvýšená ochrana proti zablokovaniu serverom
-        e_res = requests.get(e_url, headers=headers).json()
-        
-        if s_res and e_res:
-            lon1, lat1 = s_res[0]['lon'], s_res[0]['lat']
-            lon2, lat2 = e_res[0]['lon'], e_res[0]['lat']
-            
+    lon1, lat1 = get_city_coords(start_city)
+    lon2, lat2 = get_city_coords(end_city)
+
+    if lon1 and lon2:
+        try:
+            # Primárne zistíme reálnu cestu
             route_url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
-            r_res = requests.get(route_url).json()
+            r_res = requests.get(route_url, timeout=5).json()
             if r_res.get("code") == "Ok":
-                return round(r_res["routes"][0]["distance"] / 1000) # Prevod z metrov na km
-    except Exception as e:
-        pass
-    return random.randint(30, 80) # Núdzová záloha
+                return round(r_res["routes"][0]["distance"] / 1000)
+        except Exception:
+            pass
+        
+        # Matematická núdzovka, ak zlyhá routovací server (Vzdušná čiara x 1.3)
+        vzduch = haversine(lon1, lat1, lon2, lat2)
+        return round(vzduch * 1.3)
+
+    return random.randint(40, 90) # Len pre úplne nezmyselné názvy
 
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
@@ -100,7 +120,7 @@ st.markdown("""
     .contact-box .email { color: #555555; font-size: 15px; margin: 0; }
     .hero-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin-top: 60px; margin-bottom: 20px; letter-spacing: -1.5px; }
     .hero-subtitle { font-size: 20px; color: #555555; font-weight: 400; max-width: 600px; margin-bottom: 40px; }
-    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] { background-color: #f4f4f5 !important; color: #111111 !important; border: 1px solid #e4e4e7 !important; border-radius: 6px !important; }
+    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea { background-color: #f4f4f5 !important; color: #111111 !important; border: 1px solid #e4e4e7 !important; border-radius: 6px !important; }
     label, label p { color: #333333 !important; font-weight: 600 !important; font-size: 14px !important; margin-bottom: 4px !important; }
     .gen-btn > button { background-color: #111111 !important; color: #ffffff !important; width: 100%; height: 3.5em; border-radius: 8px !important; font-weight: 600 !important; border: none !important; transition: 0.2s; }
     .gen-btn > button:hover { background-color: #333333 !important; }
@@ -282,10 +302,9 @@ elif st.session_state["page"] == "Cesťáky":
                 meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
                 
-                # ZMENA SPÄŤ NA ČIARKU A INTELIGENTNÉ VYHĽADÁVANIE
-                st.info("🌍 **INTELIGENTNÉ MAPY:** Mestá stačí oddeliť čiarkou. Nemusíte písať štáty. Náš systém sám zistí, kde na svete sa mesto nachádza (napr. Viedeň, Temelín).")
-                start_miesta_input = st.text_input("Štartovacie miesta (oddelené čiarkou)", value="Mýtne Ludany, Levice")
-                mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Viedeň, Temelín, Dunaújváros")
+                st.info("🌍 **INTELIGENTNÉ MAPY:** Každé mesto zadajte jednoducho do nového riadku (stlačte Enter). Tým pádom môžete písať aj 'Temelín, CZ' a program sa nepomýli.")
+                start_miesta_input = st.text_area("Štartovacie miesta (Každé mesto do nového riadku):", value="Mýtne Ludany\nLevice")
+                mesta_sk = st.text_area("Konečné destinácie (Každé mesto do nového riadku):", value="Bratislava\nNitra\nViedeň\nTemelín, CZ\nDunaújváros, HU")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 praca_sobota = st.checkbox("Pracuje sa aj v Sobotu? (Generovať cesty na soboty)", value=False)
@@ -362,7 +381,7 @@ elif st.session_state["page"] == "Cesťáky":
                 
             with col_y:
                 miesto_domov = st.text_input("Miesto bydliska / Štart", value="Žemberovce")
-                miesto_ubytovanie = st.text_input("Miesto ubytovania na turnuse", value="Heinsberg")
+                miesto_ubytovanie = st.text_input("Miesto ubytovania na turnuse", value="Heinsberg, Nemecko")
                 miesto_praca = st.text_input("Miesto výkonu práce (Stavba)", value="Výkon práce Heinsberg")
                 
                 km_tam = st.number_input("Vzdialenosť na turnus (Cesta tam v km)", value=1150)
@@ -456,9 +475,11 @@ elif st.session_state["page"] == "Cesťáky":
                                 dni.append(d)
                         
                         random.shuffle(dni)
-                        # Rozdeľuje podľa čiarky a automaticky hľadá mestá kdekoľvek
-                        start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
-                        mesta_list = [m.strip() for m in mesta_sk.split(',')]
+                        
+                        # ZMENA, KTORÁ TO CELÉ OPRAVILA: 
+                        # Namiesto split(',') to teraz robí správne split('\n') podľa tvojich zadaných riadkov!
+                        start_mesta_list = [s.strip() for s in start_miesta_input.split('\n') if s.strip()]
+                        mesta_list = [m.strip() for m in mesta_sk.split('\n') if m.strip()]
                         
                         aktualna_suma = noclazne_suma + vedlajsie_suma
                         dosiahnuta_suma = False
