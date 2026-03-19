@@ -36,22 +36,60 @@ def get_exchange_rate(currency):
     fallbacks = {"CZK": 25.3, "SEK": 11.2, "HUF": 395.0}
     return fallbacks.get(currency, 1.0)
 
-# --- NOVÝ A NEPRIESTRELNÝ SYSTÉM NA VZDIALENOSTI ---
+# --- NEPRIESTRELNÁ DATABÁZA SÚRADNÍC (Ochrana pred výpadkom GPS a zlou pamäťou) ---
+KNOWN_CITIES = {
+    "levice": (18.6071, 48.2156),
+    "mýtne ludany": (18.6360, 48.1691),
+    "mytne ludany": (18.6360, 48.1691),
+    "mochovce": (18.4554, 48.2586),
+    "bratislava": (17.1077, 48.1486),
+    "nitra": (18.0845, 48.3119),
+    "trenčín": (18.0443, 48.8945),
+    "trencin": (18.0443, 48.8945),
+    "poprad": (20.2951, 49.0526),
+    "viedeň": (16.3738, 48.2082),
+    "vieden": (16.3738, 48.2082),
+    "wien": (16.3738, 48.2082),
+    "viedeň, at": (16.3738, 48.2082),
+    "temelín, cz": (14.3468, 49.1973),
+    "temelín": (14.3468, 49.1973),
+    "temelin": (14.3468, 49.1973),
+    "dunaújváros, hu": (18.9416, 46.9634),
+    "dunaújváros": (18.9416, 46.9634),
+    "dunaujvaros": (18.9416, 46.9634),
+    "heinsberg": (6.1011, 51.0664),
+    "heinsberg, de": (6.1011, 51.0664),
+    "žilina": (18.7394, 49.2231),
+    "košice": (21.2610, 48.7163),
+    "banská bystrica": (19.1462, 48.7355),
+    "zvolen": (19.1411, 48.5744),
+    "trnava": (17.5876, 48.3709),
+    "nové zámky": (18.1619, 47.9856),
+    "tekovské lužany": (18.5385, 48.0967),
+    "podlužany": (18.6214, 48.2541),
+    "michalovce": (21.9195, 48.7505)
+}
+
 @st.cache_data(ttl=86400)
-def get_city_coords(city_name):
+def get_city_coords_v3(city_name):
+    cn = city_name.strip().lower()
+    if cn in KNOWN_CITIES:
+        return KNOWN_CITIES[cn]
+    
+    # Ak mesto nie je v našom super-zozname, opýta sa GPS servera
     try:
-        headers = {'User-Agent': 'AutocestakPro/2.0 (sebastian@jmcredit.sk)'}
+        headers = {'User-Agent': 'AutocestakPro/5.0 (sebastian@jmcredit.sk)'}
         url = f"https://nominatim.openstreetmap.org/search?q={city_name}&format=json&limit=1"
         res = requests.get(url, headers=headers, timeout=5).json()
         if res:
-            time.sleep(1.0) # Bezpečná pauza aby nás server nikdy nezablokoval
+            time.sleep(1.0) 
             return float(res[0]['lon']), float(res[0]['lat'])
     except Exception:
         pass
     return None, None
 
 def haversine(lon1, lat1, lon2, lat2):
-    R = 6371 # Polomer Zeme v km
+    R = 6371 
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
@@ -59,13 +97,12 @@ def haversine(lon1, lat1, lon2, lat2):
     return R * c
 
 @st.cache_data(ttl=86400)
-def get_real_distance(start_city, end_city):
-    lon1, lat1 = get_city_coords(start_city)
-    lon2, lat2 = get_city_coords(end_city)
+def get_real_distance_v3(start_city, end_city):
+    lon1, lat1 = get_city_coords_v3(start_city)
+    lon2, lat2 = get_city_coords_v3(end_city)
 
     if lon1 and lon2:
         try:
-            # Primárne zistíme reálnu cestu
             route_url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=false"
             r_res = requests.get(route_url, timeout=5).json()
             if r_res.get("code") == "Ok":
@@ -73,11 +110,10 @@ def get_real_distance(start_city, end_city):
         except Exception:
             pass
         
-        # Matematická núdzovka, ak zlyhá routovací server (Vzdušná čiara x 1.3)
         vzduch = haversine(lon1, lat1, lon2, lat2)
         return round(vzduch * 1.3)
 
-    return random.randint(40, 90) # Len pre úplne nezmyselné názvy
+    return random.randint(40, 90)
 
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
@@ -476,8 +512,6 @@ elif st.session_state["page"] == "Cesťáky":
                         
                         random.shuffle(dni)
                         
-                        # ZMENA, KTORÁ TO CELÉ OPRAVILA: 
-                        # Namiesto split(',') to teraz robí správne split('\n') podľa tvojich zadaných riadkov!
                         start_mesta_list = [s.strip() for s in start_miesta_input.split('\n') if s.strip()]
                         mesta_list = [m.strip() for m in mesta_sk.split('\n') if m.strip()]
                         
@@ -494,7 +528,8 @@ elif st.session_state["page"] == "Cesťáky":
                             end_m = random.choice(mesta_list)
                             if start_m == end_m: continue
                             
-                            km_jedna_cesta = get_real_distance(start_m, end_m)
+                            # TOTO JE TEN OPRAVENÝ MOTOR "v3"
+                            km_jedna_cesta = get_real_distance_v3(start_m, end_m)
                             km_den_spolu = km_jedna_cesta * 2
                             
                             cesto = km_den_spolu * sadzba_km
