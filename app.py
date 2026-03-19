@@ -1,13 +1,3 @@
-Perfektne! 🎉 Mám tvoj kľúč a presne takto to má vyzerať.
-
-Týmto krokom sme aplikáciu posunuli do "prvej ligy". Môžeme z kódu vymazať všetky tie núdzové matematické vzorce, umelé atlasy miest a polovičné riešenia, pretože odteraz sa o všetko stará ten istý mozog, ktorý naviguje tvoje auto v mobile.
-
-Kód je vďaka tomu teraz oveľa kratší, čistejší a hlavne 100 % spoľahlivý. Nájde to absolútne akúkoľvek dedinku, mesto, aj s preklepom (napríklad keď napíšeš "Vieden Rakusko" alebo "Krompachy", Google presne vie, kam má ísť).
-
-Tu je tvoja nová, prémiová a definitívna verzia s integrovaným Google Maps API:
-(Tvoj tajný kľúč som už vložil priamo do kódu, takže len kopíruj a používaj.)
-
-Python
 import streamlit as st
 import random
 import datetime
