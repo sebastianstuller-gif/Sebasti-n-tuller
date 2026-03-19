@@ -40,12 +40,11 @@ def get_exchange_rate(currency):
 def get_real_distance(start_city, end_city):
     try:
         headers = {'User-Agent': 'AutocestakPro/1.0 (sebastian@jmcredit.sk)'}
-        # Odstránené "+Slovakia" -> systém teraz vyhľadáva mestá celosvetovo
         s_url = f"https://nominatim.openstreetmap.org/search?q={start_city}&format=json&limit=1"
         e_url = f"https://nominatim.openstreetmap.org/search?q={end_city}&format=json&limit=1"
         
         s_res = requests.get(s_url, headers=headers).json()
-        time.sleep(0.5) # Ochrana proti zablokovaniu serverom
+        time.sleep(1.0) # Zvýšená ochrana proti zablokovaniu serverom
         e_res = requests.get(e_url, headers=headers).json()
         
         if s_res and e_res:
@@ -59,6 +58,7 @@ def get_real_distance(start_city, end_city):
     except Exception as e:
         pass
     return random.randint(30, 80) # Núdzová záloha
+
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
@@ -277,12 +277,17 @@ elif st.session_state["page"] == "Cesťáky":
         if "Klasické" in typ_cesty:
             st.subheader("Parametre pre Jednodňové cesty")
             col_x, col_y = st.columns(2)
+            
             with col_x:
                 meno = st.text_input("Meno zamestnanca", value="Sebastián Štuller")
                 spz = st.text_input("ŠPZ vozidla", value="LV-000XX")
-                start_miesta_input = st.text_input("Štartovacie miesto (oddelené čiarkou)", value="Mýtne Ludany, Levice")
-                mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Trenčín")
                 
+                # ZMENA SPÄŤ NA ČIARKU A INTELIGENTNÉ VYHĽADÁVANIE
+                st.info("🌍 **INTELIGENTNÉ MAPY:** Mestá stačí oddeliť čiarkou. Nemusíte písať štáty. Náš systém sám zistí, kde na svete sa mesto nachádza (napr. Viedeň, Temelín).")
+                start_miesta_input = st.text_input("Štartovacie miesta (oddelené čiarkou)", value="Mýtne Ludany, Levice")
+                mesta_sk = st.text_input("Konečné destinácie (oddelené čiarkou)", value="Bratislava, Nitra, Viedeň, Temelín, Dunaújváros")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
                 praca_sobota = st.checkbox("Pracuje sa aj v Sobotu? (Generovať cesty na soboty)", value=False)
                 praca_nedela = st.checkbox("Pracuje sa aj v Nedeľu / Sviatok? (Vybrať konkrétne dni)", value=False, key="ned1")
                 if praca_nedela:
@@ -357,7 +362,7 @@ elif st.session_state["page"] == "Cesťáky":
                 
             with col_y:
                 miesto_domov = st.text_input("Miesto bydliska / Štart", value="Žemberovce")
-                miesto_ubytovanie = st.text_input("Miesto ubytovania na turnuse", value="Heinsberg, Nemecko")
+                miesto_ubytovanie = st.text_input("Miesto ubytovania na turnuse", value="Heinsberg")
                 miesto_praca = st.text_input("Miesto výkonu práce (Stavba)", value="Výkon práce Heinsberg")
                 
                 km_tam = st.number_input("Vzdialenosť na turnus (Cesta tam v km)", value=1150)
@@ -424,7 +429,6 @@ elif st.session_state["page"] == "Cesťáky":
                     ws['A4'] = "Vozidlo (ŠPZ):"; ws['C4'] = spz
                     ws['A5'] = "Obdobie:"; ws['C5'] = f"{mesiac_nazov} {rok}"
                     
-                    # --- NOVINKA: ZÁPIS PARAMETROV DO HLAVIČKY EXCELU ---
                     ws['F3'] = "Spotreba (l/100km):"; ws['G3'] = spotreba
                     ws['F4'] = "Cena PHM (€/l):"; ws['G4'] = cena_phm
                     ws['F5'] = "Amortizácia (€/km):"; ws['G5'] = amortizacia
@@ -452,6 +456,7 @@ elif st.session_state["page"] == "Cesťáky":
                                 dni.append(d)
                         
                         random.shuffle(dni)
+                        # Rozdeľuje podľa čiarky a automaticky hľadá mestá kdekoľvek
                         start_mesta_list = [s.strip() for s in start_miesta_input.split(',')]
                         mesta_list = [m.strip() for m in mesta_sk.split(',')]
                         
