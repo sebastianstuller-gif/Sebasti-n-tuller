@@ -65,6 +65,12 @@ def get_google_distance(start_city, end_city, api_key):
     
     return 50 
 
+# --- SESSION STATE PRE MANUÁLNE CESTY ---
+if "manual_trips" not in st.session_state:
+    st.session_state.manual_trips = []
+if "temp_stops" not in st.session_state:
+    st.session_state.temp_stops = []
+
 # --- JAZYKOVÝ SLOVNÍK ---
 if "lang" not in st.session_state: st.session_state["lang"] = "SK"
 if "page" not in st.session_state: st.session_state["page"] = "Domov"
@@ -343,6 +349,43 @@ elif st.session_state["page"] == "Cesťáky":
                     stravne_val = st.number_input("Stravné v € na deň (SR)", value=float(def_stravne_eur), step=0.10)
                     st.markdown('<div class="verify-link">🔍 <a href="https://www.ip.gov.sk/cestovne-nahrady-pri-pracovnej-ceste/" target="_blank">Overiť sadzby a časové pásma SR (Inšpektorát práce)</a></div>', unsafe_allow_html=True)
 
+            # --- MANUÁLNE CESTY UI ---
+            st.markdown("---")
+            st.markdown("### 📍 Manuálne pridanie konkrétnych ciest (Fixné dni)")
+            with st.container():
+                st.markdown('<div style="background-color: #f9f9fb; padding: 20px; border-radius: 10px; border: 1px dashed #ccc; margin-bottom: 20px;">', unsafe_allow_html=True)
+                m_col1, m_col2, m_col3 = st.columns([1, 1, 1])
+                with m_col1: m_date = st.date_input("Dátum fixnej cesty", datetime.date(rok, mesiac_int, 1))
+                with m_col2: m_start = st.text_input("Miesto štartu", value="Levice", key="m_start")
+                with m_col3: m_end = st.text_input("Konečný cieľ", value="", placeholder="napr. Praha", key="m_end")
+                
+                st.write("**Medzizastávky (voliteľné):**")
+                for i, stop in enumerate(st.session_state.temp_stops):
+                    st.session_state.temp_stops[i] = st.text_input(f"Stredné mesto {i+1}", value=stop, key=f"stop_{i}")
+                
+                c_btn1, c_btn2 = st.columns(2)
+                with c_btn1:
+                    if st.button("➕ Pridať medzizastávku"):
+                        st.session_state.temp_stops.append("")
+                        st.rerun()
+                with c_btn2:
+                    if st.button("✅ Uložiť manuálnu cestu"):
+                        if m_end:
+                            full_route = [m_start] + [s for s in st.session_state.temp_stops if s.strip()] + [m_end]
+                            st.session_state.manual_trips.append({"date": m_date, "route": full_route})
+                            st.session_state.temp_stops = []
+                            st.success("Cesta pridaná!")
+                            st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            if st.session_state.manual_trips:
+                st.write("**Uložené manuálne cesty:**")
+                for i, trip in enumerate(st.session_state.manual_trips):
+                    st.info(f"📅 {trip['date'].strftime('%d.%m.')}: {' ➔ '.join(trip['route'])}")
+                if st.button("🗑️ Vymazať všetky manuálne cesty"):
+                    st.session_state.manual_trips = []
+                    st.rerun() 
+
         else: # TURNUS
             st.subheader("Parametre pre Turnus / Zahraničnú montáž")
             st.info("💡 Tento režim vygeneruje 1. deň ako Cestu na turnus, stredné dni ako denné dochádzanie z ubytovania do práce a posledný deň ako Návrat domov.")
@@ -454,11 +497,13 @@ elif st.session_state["page"] == "Cesťáky":
                     curr = 9
                     
                     if "Klasické" in typ_cesty:
+                        manualne_datumy = [t["date"] for t in st.session_state.manual_trips]
                         dni = []
                         for d in vsetky_dni_v_mesiaci:
                             is_standard_workday = d.weekday() <= (5 if praca_sobota else 4) and d not in sk_hol_obj
                             if is_standard_workday or (d in vybrane_nedele_sviatky):
-                                dni.append(d)
+                                if d not in manualne_datumy:
+                                    dni.append(d)
                         
                         random.shuffle(dni)
                         
@@ -471,10 +516,29 @@ elif st.session_state["page"] == "Cesťáky":
                         aktualna_suma = noclazne_suma + vedlajsie_suma
                         dosiahnuta_suma = False
                         vybrane_cesty = []
+
+                        # ZAPOČÍTANIE MANUÁLNYCH CIEST
+                        for trip in st.session_state.manual_trips:
+                            route = trip["route"]
+                            total_km = 0
+                            for j in range(len(route)-1):
+                                total_km += get_google_distance(route[j], route[j+1], GOOGLE_API_KEY)
+                            total_km += get_google_distance(route[-1], route[0], GOOGLE_API_KEY)
+                            
+                            cesto = total_km * sadzba_km
+                            total = cesto + stravne_val
+                            aktualna_suma += total
+                            
+                            vybrane_cesty.append({
+                                "datum": trip["date"], "start": "manual", "end": "manual", 
+                                "km": total_km, "cesto": cesto, "total": total,
+                                "is_manual_route": route
+                            })
                         
                         s_idx = 0
                         d_idx = 0
                         
+                        # DOPOČÍTANIE NÁHODNÝCH CIEST
                         for idx, d in enumerate(dni):
                             if aktualna_suma >= cielova_suma:
                                 dosiahnuta_suma = True
@@ -487,7 +551,6 @@ elif st.session_state["page"] == "Cesťáky":
                                 d_idx += 1
                                 end_m = mesta_list[d_idx % len(mesta_list)]
                                 
-                            # VÝPOČET CEZ GOOGLE API
                             km_jedna_cesta = get_google_distance(start_m, end_m, GOOGLE_API_KEY)
                             km_den_spolu = km_jedna_cesta * 2
                             
@@ -510,8 +573,15 @@ elif st.session_state["page"] == "Cesťáky":
                             akt_vedl = vedlajsie_suma if idx == (len(vybrane_cesty)-1) else 0.0
                             celkovy_total = cesta["total"] + akt_noc + akt_vedl
                             
-                            ws.append([cesta["datum"].strftime("%d.%m.%Y"), f"{cesta['start']} -> {cesta['end']}", spz, cesta["km"], "08:00", round(cesta["cesto"], 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(celkovy_total, 2)])
-                            ws.append(["", f"{cesta['end']} -> {cesta['start']}", "", "", "16:30", "", "", "", "", ""])
+                            if "is_manual_route" in cesta:
+                                cesta_tam = " -> ".join(cesta["is_manual_route"])
+                                cesta_spat = f"{cesta['is_manual_route'][-1]} -> {cesta['is_manual_route'][0]}"
+                            else:
+                                cesta_tam = f"{cesta['start']} -> {cesta['end']}"
+                                cesta_spat = f"{cesta['end']} -> {cesta['start']}"
+                                
+                            ws.append([cesta["datum"].strftime("%d.%m.%Y"), cesta_tam, spz, cesta["km"], "08:00", round(cesta["cesto"], 2), stravne_val, akt_noc if akt_noc>0 else "", akt_vedl if akt_vedl>0 else "", round(celkovy_total, 2)])
+                            ws.append(["", cesta_spat, "", "", "16:30", "", "", "", "", ""])
                             
                             for r_off in [0, 1]:
                                 for c_idx in range(1, 11):
