@@ -1,20 +1,3 @@
-Toto je skvelý nápad z hľadiska použiteľnosti (UX). Aplikácia musí byť rýchla, keď chceš iba náhodný cesťák, a zároveň detailná, keď máš presné dni.
-
-Pridal som presne to, čo si žiadal:
-
-Zaškrtávacie políčko: Celá sekcia manuálnych ciest je teraz schovaná. Vybehne až vtedy, keď zaškrtneš "📍 Chcem zadať konkrétne (fixné) cesty".
-
-Dva režimy (Radio button): Ak to zaškrtneš, vybehne ti na výber:
-
-Pridať manuálne cesty a zvyšok doplniť náhodne (Ponechá starú logiku pre dosiahnutie 1500 €).
-
-Generovať IBA manuálne zadané cesty (Úplne vypne náhodné dopĺňanie a urobí Excel len z tých ciest, ktoré si si vyklikal – cieľová suma sa vtedy ignoruje).
-
-Plynulé pridávanie: Tlačidlo sa teraz volá "✅ Pridať túto cestu do zoznamu" a po jeho kliknutí políčka ostanú pripravené na ďalšie mesto, takže ich môžeš "nabúchať" za sebou hoci aj 30.
-
-Tu je kompletný, opravený a finálny kód (všetkých cca 500 riadkov). Jednoducho ho celý zober a vlož do svojho súboru:
-
-Python
 import streamlit as st
 import random
 import datetime
