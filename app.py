@@ -394,7 +394,14 @@ elif st.session_state["page"] == "Cesťáky":
             if st.session_state.manual_trips:
                 st.write(f"**Uložené manuálne cesty ({len(st.session_state.manual_trips)}):**")
                 for i, trip in enumerate(st.session_state.manual_trips):
-                    st.info(f"📅 {trip['date'].strftime('%d.%m.')}: {' ➔ '.join(trip['route'])}")
+                    c_info, c_del = st.columns([8, 1])
+                    with c_info:
+                        st.info(f"📅 {trip['date'].strftime('%d.%m.')}: {' ➔ '.join(trip['route'])}")
+                    with c_del:
+                        if st.button("🗑️", key=f"del_trip_{i}"):
+                            st.session_state.manual_trips.pop(i)
+                            st.rerun()
+                
                 if st.button("🗑️ Vymazať všetky manuálne cesty"):
                     st.session_state.manual_trips = []
                     st.rerun() 
